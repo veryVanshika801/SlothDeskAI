@@ -1,5 +1,5 @@
 <img width="3354" height="1946" alt="image" src="https://github.com/user-attachments/assets/292c4906-6cae-4995-ae8b-445ef8624dcf" />
-# 🦥 SlothDesk AI
+## 🦥 SlothDesk AI
 
 ### Work smarter. Move slower. Get there.
 
