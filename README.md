@@ -1,7 +1,7 @@
 <img width="3354" height="1946" alt="image" src="https://github.com/user-attachments/assets/292c4906-6cae-4995-ae8b-445ef8624dcf" />
 
 
-## 🦥SlothDesk AI
+## SlothDesk AI
 
 ### Work smarter. Move slower. Get there.
 
@@ -23,7 +23,7 @@
 - **📊 Productivity Dashboard** — Keep track of tasks, progress, and recent activity.
 - **🦥 Calm User Experience** — Enjoy a sloth-inspired interface designed around mindful productivity.
 
-## 🎯 Our Mission
+## Our Mission
 
 Productivity shouldn't mean doing everything at once.
 
@@ -42,7 +42,7 @@ The project uses a modern web application stack, including:
 - **Browser storage** — Local persistence for supported application data
 - **Vercel** — Production deployment target
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -104,7 +104,7 @@ Explore a calmer way to organize your day, simplify tasks, and celebrate small w
 
 AI functionality depends on the configured provider and deployment settings. Avoid submitting sensitive information to AI tools, and never expose provider credentials in client-side code.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions, bug reports, and feature suggestions are welcome.
 
@@ -126,5 +126,5 @@ No license has been specified in this repository yet. Add a `LICENSE` file befor
 ---
 
 <p align="center">
-  🦥 <strong>Slow down. Simplify. Grow.</strong> 🌱
+   <strong>Slow down. Simplify. Grow.</strong> 🌱
 </p>
