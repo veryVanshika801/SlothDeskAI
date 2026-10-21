@@ -13,6 +13,7 @@ export interface Subtask {
   title: string;
   completed: boolean;
   estimatedMinutes?: number;
+  starterAction?: string;
 }
 
 export interface Task {
@@ -23,8 +24,10 @@ export interface Task {
   completed: boolean;
   dueDate?: string;
   estimatedMinutes?: number;
+  category?: string;
   tags?: string[];
   subtasks?: Subtask[];
+  suggestedNextAction?: string;
   createdAt: string;
   completedAt?: string;
   energyLevel?: EnergyLevel;
@@ -33,6 +36,7 @@ export interface Task {
 export type MascotState =
   | 'idle'
   | 'thinking'
+  | 'generating'
   | 'low-energy'
   | 'task-completed'
   | 'encouragement'
@@ -46,22 +50,28 @@ export interface ActivityItem {
   type:
     | 'task_created'
     | 'task_completed'
+    | 'task_uncompleted'
     | 'task_updated'
     | 'task_deleted'
     | 'ai_organize'
     | 'ai_low_energy'
     | 'ai_breakdown'
     | 'ai_notes'
+    | 'ai_quick_capture'
+    | 'ai_reschedule'
     | 'planner_saved'
     | 'garden_reset';
   title: string;
   details?: string;
+  undoable?: boolean;
+  undoPayload?: any;
 }
 
 export interface SlothGardenData {
   leafCount: number;
   treeStage: number; // 1 to 5
   lastHarvestDate?: string;
+  completedTaskIds: string[]; // Prevents duplicate leaf rewards on re-completion
   historyLogs: { date: string; leavesEarned: number }[];
 }
 
@@ -77,8 +87,10 @@ export interface TimeBlock {
 
 export interface AIServiceStatus {
   isConfigured: boolean;
+  provider: 'gemini' | 'openweight' | 'demo';
+  providerLabel: string;
   modelName: string;
-  provider: 'gemini' | 'gemma_open_weight' | 'demo';
+  isOpenWeight: boolean;
   statusMessage: string;
   isDemoMode: boolean;
 }
@@ -88,9 +100,11 @@ export interface OrganizedTaskProposal {
   title: string;
   description: string;
   priority: Priority;
+  category: string;
   estimatedMinutes: number;
   tags: string[];
-  suggestedDue?: string;
+  suggestedNextAction?: string;
+  suggestedDue?: string | null;
   selected: boolean;
 }
 
@@ -114,12 +128,46 @@ export interface LowEnergyPlan {
 export interface NoteAnalysisResult {
   conciseSummary: string;
   keyPoints: string[];
+  decisions: string[];
   extractedActions: {
     title: string;
     priority: Priority;
     estimatedMinutes: number;
-    explicitDateMentioned?: string;
+    explicitDateMentioned?: string | null;
+    isExplicitInSource: boolean;
   }[];
   explicitDates: string[];
   openQuestionsOrAmbiguities: string[];
+}
+
+export interface QuickCaptureItem {
+  tasks: Array<{
+    title: string;
+    priority: Priority;
+    estimatedMinutes: number;
+    selected: boolean;
+  }>;
+  notes: Array<{ text: string; selected: boolean }>;
+  ideas: Array<{ text: string; selected: boolean }>;
+  deadlines: Array<{ title: string; date: string; selected: boolean }>;
+}
+
+export interface ReschedulePlan {
+  headline: string;
+  explanation: string;
+  adjustedBlocks: TimeBlock[];
+  deferredTasks: string[];
+}
+
+export interface DocumentSummaryResult {
+  fileName: string;
+  fileSize: number;
+  summary: string;
+  keyPoints: string[];
+  extractedActions: Array<{
+    title: string;
+    priority: Priority;
+    estimatedMinutes: number;
+  }>;
+  sourceSnippets: string[];
 }

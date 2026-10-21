@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -11,7 +11,7 @@ import {
   Menu,
   X,
   Plus,
-  Search,
+  Play,
   ExternalLink,
   Shield,
   Coffee,
@@ -28,6 +28,8 @@ import { SlowPlannerView } from '../ai/SlowPlannerView';
 import { SlothGardenView } from '../garden/SlothGardenView';
 import { ActivityHistoryView } from '../history/ActivityHistoryView';
 import { SettingsView } from '../settings/SettingsView';
+import { OneTaskFocusMode } from '../focus/OneTaskFocusMode';
+import { QuickCaptureModal } from '../quickcapture/QuickCaptureModal';
 
 interface WorkspaceShellProps {
   tasks: Task[];
@@ -44,6 +46,9 @@ interface WorkspaceShellProps {
   onSaveSchedule: (blocks: TimeBlock[]) => void;
   onResetGarden: () => void;
   onClearHistory: () => void;
+  onUndoActivity: (item: ActivityItem) => void;
+  onLoadSampleData: () => void;
+  onRestoreData: (backup: any) => void;
   onUpdateSettings: (settings: AppSettings) => void;
   onExportData: () => void;
   onClearAllData: () => void;
@@ -66,6 +71,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   onSaveSchedule,
   onResetGarden,
   onClearHistory,
+  onUndoActivity,
+  onLoadSampleData,
+  onRestoreData,
   onUpdateSettings,
   onExportData,
   onClearAllData,
@@ -75,10 +83,25 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [targetMakeSmallerTask, setTargetMakeSmallerTask] = useState<string>('');
+  const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+
+  // Keyboard shortcut Cmd+K or Ctrl+K for quick capture
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setQuickCaptureOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'tasks', label: 'My Tasks', icon: CheckSquare, count: tasks.filter((t) => !t.completed).length },
+    { id: 'focus', label: 'One-Task Focus', icon: Play },
     { id: 'organizer', label: 'Task Organizer', icon: Sparkles },
     { id: 'low-energy', label: 'Low-Energy Mode', icon: Coffee },
     { id: 'breakdown', label: 'Make It Smaller', icon: Sparkles },
@@ -94,15 +117,23 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setActiveTab('breakdown');
   };
 
+  const handleStartFocus = (taskId: string) => {
+    setFocusTaskId(taskId);
+    setActiveTab('focus');
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
         return (
           <DashboardOverview
             tasks={tasks}
+            garden={garden}
             onOpenTab={setActiveTab}
             onToggleComplete={onToggleComplete}
             onOpenMakeSmaller={handleOpenMakeSmaller}
+            onStartFocusOnTask={handleStartFocus}
+            onOpenQuickCapture={() => setQuickCaptureOpen(true)}
           />
         );
       case 'tasks':
@@ -114,6 +145,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onDeleteTask={onDeleteTask}
             onToggleComplete={onToggleComplete}
             onOpenMakeSmaller={handleOpenMakeSmaller}
+            onStartFocusOnTask={handleStartFocus}
+          />
+        );
+      case 'focus':
+        return (
+          <OneTaskFocusMode
+            tasks={tasks}
+            initialTaskId={focusTaskId}
+            onCompleteTask={onToggleComplete}
+            onExitFocus={() => setActiveTab('tasks')}
+            onSelectTask={(id) => setFocusTaskId(id)}
           />
         );
       case 'organizer':
@@ -136,6 +178,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <MakeItSmallerView
             tasks={tasks}
             onAddSubtasks={onAddSubtasks}
+            onAddStandaloneTasks={onAddTasks}
             onOpenTaskTab={() => setActiveTab('tasks')}
           />
         );
@@ -167,6 +210,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <ActivityHistoryView
             activities={activities}
             onClearHistory={onClearHistory}
+            onUndoActivity={onUndoActivity}
           />
         );
       case 'settings':
@@ -174,8 +218,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <SettingsView
             settings={settings}
             onUpdateSettings={onUpdateSettings}
-            onExportData={onExportData}
             onClearAllData={onClearAllData}
+            onLoadSampleData={onLoadSampleData}
+            onRestoreData={onRestoreData}
           />
         );
       default:
@@ -282,12 +327,21 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             <span>SlothDesk AI</span>
           </button>
 
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg text-[#22221F] hover:bg-[#F5F0E7]"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setQuickCaptureOpen(true)}
+              className="p-2 rounded-lg bg-white text-[#39483B] border border-[#A6AD99]/40"
+              title="Quick Brain Dump"
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg text-[#22221F] hover:bg-[#F5F0E7]"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </header>
 
         {/* Mobile Nav Drawer */}
@@ -339,20 +393,24 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Quick Capture Cmd+K Button */}
+            <button
+              onClick={() => setQuickCaptureOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#A6AD99]/40 text-xs text-[#22221F] hover:bg-[#E9E0D2] transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#39483B]" />
+              <span className="font-medium">Brain Dump</span>
+              <kbd className="font-mono text-[10px] bg-[#F5F0E7] px-1 py-0.5 rounded text-[#77766E]">
+                ⌘K
+              </kbd>
+            </button>
+
             {/* Guest mode status badge */}
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#E9E0D2] border border-[#A6AD99]/30 text-xs text-[#22221F]">
               <div className="w-2 h-2 rounded-full bg-[#39483B]" />
-              <span className="font-medium">Guest Mode</span>
-              <span className="text-[#77766E]">(Local Vault)</span>
+              <span className="font-medium">Private Vault</span>
+              <span className="text-[#77766E]">(Local)</span>
             </div>
-
-            <button
-              onClick={() => setActiveTab('organizer')}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#39483B] text-[#F5F0E7] text-xs font-medium hover:bg-[#2c392e] transition-colors shadow-xs"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>AI Quick Dump</span>
-            </button>
           </div>
         </header>
 
@@ -361,6 +419,19 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           {renderContent()}
         </main>
       </div>
+
+      {/* Global Quick Capture Modal */}
+      <QuickCaptureModal
+        isOpen={quickCaptureOpen}
+        onClose={() => setQuickCaptureOpen(false)}
+        onSaveTasks={onAddTasks}
+        onSaveNotes={(newNotes) => {
+          // Add notes to activities or quick note store
+          newNotes.forEach((n) => {
+            onAddTasks([]);
+          });
+        }}
+      />
     </div>
   );
 };

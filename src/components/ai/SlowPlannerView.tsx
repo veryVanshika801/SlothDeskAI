@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Task, TimeBlock, EnergyLevel } from '../../types';
+import { Task, TimeBlock } from '../../types';
 import { generateSlowSchedule } from '../../services/aiService';
 import { SlothMascot } from '../mascot/SlothMascot';
-import { Sparkles, Plus, Trash2, Clock, Calendar, Coffee, MoveUp, MoveDown, Check } from 'lucide-react';
+import { SmartRescheduleModal } from '../planner/SmartRescheduleModal';
+import { Sparkles, Plus, Trash2, Clock, Calendar, Coffee, MoveUp, MoveDown, Check, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface SlowPlannerViewProps {
   tasks: Task[];
@@ -23,6 +24,8 @@ export const SlowPlannerView: React.FC<SlowPlannerViewProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [sourceStatus, setSourceStatus] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isOverloaded, setIsOverloaded] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
 
   // New block form
   const [newTitle, setNewTitle] = useState('');
@@ -37,6 +40,7 @@ export const SlowPlannerView: React.FC<SlowPlannerViewProps> = ({
       const res = await generateSlowSchedule(tasks, availableHours);
       setBlocks(res.schedule);
       setSourceStatus(res.source);
+      setIsOverloaded(Boolean(res.isOverloaded));
     } catch (e) {
       console.error(e);
     } finally {
@@ -88,7 +92,7 @@ export const SlowPlannerView: React.FC<SlowPlannerViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-[#E9E0D2] rounded-2xl p-6 border border-[#A6AD99]/30 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="bg-[#E9E0D2] rounded-2xl p-6 border border-[#A6AD99]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
         <div className="flex items-center gap-5">
           <SlothMascot state="idle" size="lg" />
           <div>
@@ -103,20 +107,47 @@ export const SlowPlannerView: React.FC<SlowPlannerViewProps> = ({
               Time Blocking for Humans, Not Robots
             </h2>
             <p className="text-sm text-[#77766E] max-w-xl mt-1">
-              Never cram back-to-back 60-minute blocks without oxygen. Balance real focus sessions with deliberate breathing room and slow mindful pauses.
+              Never cram back-to-back blocks without oxygen. Balance real focus sessions with deliberate breathing room and slow mindful pauses.
             </p>
           </div>
         </div>
 
-        {sourceStatus && (
-          <div className="px-3.5 py-1.5 rounded-lg text-xs font-mono bg-[#F5F0E7] text-[#39483B] border border-[#A6AD99]/40 shrink-0">
-            Engine: {sourceStatus === 'live_ai' ? 'Live Gemini / Gemma' : 'Deterministic Mode'}
-          </div>
-        )}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button
+            onClick={() => setShowRescheduleModal(true)}
+            className="px-4 py-2 rounded-xl bg-white text-[#39483B] border border-[#A6AD99]/40 text-xs font-semibold hover:bg-[#F5F0E7] transition-colors flex items-center gap-2"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Day Off Track? Downshift</span>
+          </button>
+
+          {sourceStatus && (
+            <div className="px-3.5 py-1.5 rounded-lg text-xs font-mono bg-[#F5F0E7] text-[#39483B] border border-[#A6AD99]/40 shrink-0">
+              {sourceStatus === 'live_ai' ? 'Live AI Engine' : 'Deterministic Mode'}
+            </div>
+          )}
+        </div>
       </div>
 
+      {isOverloaded && (
+        <div className="p-4 rounded-xl bg-[#C47D61]/10 border border-[#C47D61]/30 text-xs text-[#C47D61] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>
+              Heads up: Your open tasks exceed the available window with buffer room. Consider rescheduling non-critical tasks.
+            </span>
+          </div>
+          <button
+            onClick={() => setShowRescheduleModal(true)}
+            className="underline font-semibold"
+          >
+            Auto-downshift
+          </button>
+        </div>
+      )}
+
       {/* Control Bar: Date & Hours */}
-      <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 flex flex-wrap items-center justify-between gap-4 shadow-xs">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-xs font-medium text-[#22221F]">
             <Calendar className="w-4 h-4 text-[#39483B]" />
@@ -136,10 +167,10 @@ export const SlowPlannerView: React.FC<SlowPlannerViewProps> = ({
               onChange={(e) => setAvailableHours(Number(e.target.value))}
               className="px-2.5 py-1.5 rounded-lg bg-[#F5F0E7] border border-[#A6AD99]/40 text-xs text-[#22221F] focus:outline-none"
             >
-              <option value={2}>2 Hours</option>
+              <option value={2}>2 Hours (Gentle)</option>
               <option value={3}>3 Hours</option>
               <option value={4}>4 Hours (Recommended)</option>
-              <option value={6}>6 Hours</option>
+              <option value={6}>6 Hours (Deep)</option>
             </select>
           </div>
         </div>
@@ -155,7 +186,7 @@ export const SlowPlannerView: React.FC<SlowPlannerViewProps> = ({
       </div>
 
       {/* Schedule Timeline Blocks */}
-      <div className="bg-[#FFFFFF] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 space-y-4">
+      <div className="bg-[#FFFFFF] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 space-y-4 shadow-xs">
         <div className="flex items-center justify-between border-b border-[#A6AD99]/20 pb-3">
           <h3 className="text-base font-serif font-bold text-[#22221F]">
             Timeline Blocks ({blocks.length})
@@ -231,7 +262,7 @@ export const SlowPlannerView: React.FC<SlowPlannerViewProps> = ({
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Add a new custom task or mindful pause..."
+            placeholder="Add custom task or mindful buffer block..."
             className="flex-1 min-w-[200px] p-2.5 rounded-xl bg-[#F5F0E7]/60 border border-[#A6AD99]/40 text-xs text-[#22221F] focus:outline-none"
           />
           <div className="flex items-center gap-1">
@@ -282,6 +313,17 @@ export const SlowPlannerView: React.FC<SlowPlannerViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Smart Rescheduling Modal */}
+      <SmartRescheduleModal
+        isOpen={showRescheduleModal}
+        onClose={() => setShowRescheduleModal(false)}
+        openTasks={tasks.filter((t) => !t.completed)}
+        onApplySchedule={(newBlocks) => {
+          setBlocks(newBlocks);
+          onSaveSchedule(newBlocks);
+        }}
+      />
     </div>
   );
 };

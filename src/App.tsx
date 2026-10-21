@@ -10,6 +10,8 @@ import {
   savePlanner,
   loadSettings,
   saveSettings,
+  clearSlothDeskData,
+  generateExportBackup,
   INITIAL_TASKS,
   INITIAL_GARDEN,
   INITIAL_ACTIVITIES,
@@ -29,7 +31,7 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null);
 
-  // Sync to storage on change
+  // Sync to local storage
   useEffect(() => {
     saveTasks(tasks);
   }, [tasks]);
@@ -48,7 +50,6 @@ export default function App() {
 
   useEffect(() => {
     saveSettings(settings);
-    // Apply reduced motion to document class or style if needed
     if (settings.reducedMotion) {
       document.documentElement.classList.add('reduce-motion');
     } else {
@@ -57,13 +58,21 @@ export default function App() {
   }, [settings]);
 
   // Activity logging helper
-  const addActivity = (type: ActivityItem['type'], title: string, details?: string) => {
+  const addActivity = (
+    type: ActivityItem['type'],
+    title: string,
+    details?: string,
+    undoable = false,
+    undoPayload?: any
+  ) => {
     const newItem: ActivityItem = {
       id: `act-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       timestamp: new Date().toISOString(),
       type,
       title,
       details,
+      undoable,
+      undoPayload,
     };
     setActivities((prev) => [newItem, ...prev.slice(0, 49)]); // keep recent 50
   };
@@ -71,12 +80,23 @@ export default function App() {
   // Task actions
   const handleAddTask = (task: Task) => {
     setTasks((prev) => [task, ...prev]);
-    addActivity('task_created', `Created task "${task.title}"`, `Priority: ${task.priority.toUpperCase()}`);
+    addActivity(
+      'task_created',
+      `Created task "${task.title}"`,
+      `Priority: ${task.priority.toUpperCase()}`,
+      true,
+      { taskId: task.id }
+    );
   };
 
   const handleAddTasks = (newTasks: Task[]) => {
+    if (newTasks.length === 0) return;
     setTasks((prev) => [...newTasks, ...prev]);
-    addActivity('ai_organize', `Added ${newTasks.length} tasks from AI`, 'Imported from AI workflow');
+    addActivity(
+      'ai_organize',
+      `Added ${newTasks.length} tasks from AI`,
+      'Imported into active workspace'
+    );
   };
 
   const handleUpdateTask = (updated: Task) => {
@@ -88,7 +108,13 @@ export default function App() {
     const target = tasks.find((t) => t.id === taskId);
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     if (target) {
-      addActivity('task_deleted', `Deleted "${target.title}"`);
+      addActivity(
+        'task_deleted',
+        `Deleted "${target.title}"`,
+        undefined,
+        true,
+        { task: target }
+      );
     }
   };
 
@@ -109,33 +135,84 @@ export default function App() {
     setTasks(updatedTasks);
 
     if (willBeCompleted) {
-      // Sprout leaf in Sloth Garden
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const newCount = garden.leafCount + 1;
-      const newStage = Math.min(5, Math.floor(newCount / 5) + 1);
+      // Prevent duplicate leaf rewards!
+      const alreadyEarned = garden.completedTaskIds?.includes(target.id);
+      let newCount = garden.leafCount;
+      let newCompletedIds = Array.isArray(garden.completedTaskIds)
+        ? [...garden.completedTaskIds]
+        : [];
 
-      const existingHistory = [...garden.historyLogs];
-      const todayEntry = existingHistory.find((h) => h.date === todayStr);
-      if (todayEntry) {
-        todayEntry.leavesEarned += 1;
+      if (!alreadyEarned) {
+        newCount = garden.leafCount + 1;
+        newCompletedIds.push(target.id);
+
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const existingHistory = [...garden.historyLogs];
+        const todayEntry = existingHistory.find((h) => h.date === todayStr);
+        if (todayEntry) {
+          todayEntry.leavesEarned += 1;
+        } else {
+          existingHistory.unshift({ date: todayStr, leavesEarned: 1 });
+        }
+
+        const newStage = Math.min(5, Math.floor(newCount / 5) + 1);
+
+        setGarden({
+          leafCount: newCount,
+          treeStage: newStage,
+          completedTaskIds: newCompletedIds,
+          historyLogs: existingHistory,
+        });
+
+        setCelebratingTaskId(target.id);
+        setTimeout(() => setCelebratingTaskId(null), 3000);
+
+        addActivity(
+          'task_completed',
+          `Completed "${target.title}"`,
+          `Sprouted leaf #${newCount} in Sloth Garden 🌿`,
+          true,
+          { taskId: target.id }
+        );
       } else {
-        existingHistory.unshift({ date: todayStr, leavesEarned: 1 });
+        // Already earned a leaf previously, just mark completed without duplicate leaf exploit
+        addActivity(
+          'task_completed',
+          `Re-completed "${target.title}"`,
+          `Completed again (Leaf already earned)`,
+          true,
+          { taskId: target.id }
+        );
       }
-
-      setGarden({
-        leafCount: newCount,
-        treeStage: newStage,
-        historyLogs: existingHistory,
-      });
-
-      setCelebratingTaskId(target.id);
-      setTimeout(() => setCelebratingTaskId(null), 3000);
-
+    } else {
+      // Task was reopened
       addActivity(
-        'task_completed',
-        `Completed "${target.title}"`,
-        `Sprouted leaf #${newCount} in the Sloth Garden 🌿`
+        'task_uncompleted',
+        `Reopened "${target.title}"`,
+        `Task marked as active`,
+        true,
+        { taskId: target.id }
       );
+    }
+  };
+
+  const handleUndoActivity = (item: ActivityItem) => {
+    if (!item.undoPayload) return;
+
+    if (item.type === 'task_completed' && item.undoPayload.taskId) {
+      // Reopen task
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === item.undoPayload.taskId
+            ? { ...t, completed: false, completedAt: undefined }
+            : t
+        )
+      );
+      addActivity('task_uncompleted', `Undid completion of task`);
+    } else if (item.type === 'task_deleted' && item.undoPayload.task) {
+      // Restore task
+      setTasks((prev) => [item.undoPayload.task, ...prev]);
+      addActivity('task_created', `Restored "${item.undoPayload.task.title}"`);
     }
   };
 
@@ -150,7 +227,7 @@ export default function App() {
           : t
       )
     );
-    addActivity('ai_breakdown', `Deconstructed task into ${subtasks.length} steps`);
+    addActivity('ai_breakdown', `Attached ${subtasks.length} micro-steps to task`);
   };
 
   const handleSaveSchedule = (newBlocks: TimeBlock[]) => {
@@ -162,6 +239,7 @@ export default function App() {
     setGarden({
       leafCount: 0,
       treeStage: 1,
+      completedTaskIds: [],
       historyLogs: [],
     });
     addActivity('garden_reset', 'Reset Sloth Garden tree leaves to 0');
@@ -176,16 +254,7 @@ export default function App() {
   };
 
   const handleExportData = () => {
-    const backup = {
-      app: 'SlothDesk AI',
-      exportDate: new Date().toISOString(),
-      tasks,
-      garden,
-      activities,
-      planner,
-      settings,
-    };
-    const jsonStr = JSON.stringify(backup, null, 2);
+    const jsonStr = generateExportBackup();
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -196,12 +265,28 @@ export default function App() {
   };
 
   const handleClearAllData = () => {
-    localStorage.clear();
+    clearSlothDeskData();
+    setTasks([]);
+    setGarden({ leafCount: 0, treeStage: 1, completedTaskIds: [], historyLogs: [] });
+    setActivities([]);
+    setPlanner([]);
+    setSettings(INITIAL_SETTINGS);
+  };
+
+  const handleLoadSampleData = () => {
     setTasks(INITIAL_TASKS);
     setGarden(INITIAL_GARDEN);
     setActivities(INITIAL_ACTIVITIES);
     setPlanner(INITIAL_PLANNER);
     setSettings(INITIAL_SETTINGS);
+  };
+
+  const handleRestoreData = (backup: any) => {
+    if (backup.tasks) setTasks(backup.tasks);
+    if (backup.garden) setGarden(backup.garden);
+    if (backup.activities) setActivities(backup.activities);
+    if (backup.planner) setPlanner(backup.planner);
+    if (backup.settings) setSettings(backup.settings);
   };
 
   return (
@@ -229,6 +314,9 @@ export default function App() {
           onSaveSchedule={handleSaveSchedule}
           onResetGarden={handleResetGarden}
           onClearHistory={handleClearHistory}
+          onUndoActivity={handleUndoActivity}
+          onLoadSampleData={handleLoadSampleData}
+          onRestoreData={handleRestoreData}
           onUpdateSettings={handleUpdateSettings}
           onExportData={handleExportData}
           onClearAllData={handleClearAllData}

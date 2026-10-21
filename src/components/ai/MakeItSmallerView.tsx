@@ -2,17 +2,19 @@ import React, { useState } from 'react';
 import { Task, Subtask } from '../../types';
 import { breakdownTaskIntoSteps } from '../../services/aiService';
 import { SlothMascot } from '../mascot/SlothMascot';
-import { Sparkles, Check, Plus, Clock, Scissors, RotateCcw } from 'lucide-react';
+import { Sparkles, Check, Plus, Clock, Scissors, RotateCcw, Copy, Layers } from 'lucide-react';
 
 interface MakeItSmallerViewProps {
   tasks: Task[];
   onAddSubtasks: (taskId: string, subtasks: Subtask[]) => void;
+  onAddStandaloneTasks?: (tasks: Task[]) => void;
   onOpenTaskTab: () => void;
 }
 
 export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
   tasks,
   onAddSubtasks,
+  onAddStandaloneTasks,
   onOpenTaskTab,
 }) => {
   const [selectedTaskId, setSelectedTaskId] = useState<string>(
@@ -20,10 +22,12 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
   );
   const [customTitle, setCustomTitle] = useState('');
   const [customDesc, setCustomDesc] = useState('');
+  const [desiredStepCount, setDesiredStepCount] = useState<number>(4);
   const [isLoading, setIsLoading] = useState(false);
   const [steps, setSteps] = useState<Subtask[]>([]);
   const [sourceStatus, setSourceStatus] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const activeTask = tasks.find((t) => t.id === selectedTaskId);
   const taskTitleToBreak =
@@ -36,7 +40,7 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
     setIsLoading(true);
     setApplied(false);
     try {
-      const res = await breakdownTaskIntoSteps(taskTitleToBreak, taskDescToBreak);
+      const res = await breakdownTaskIntoSteps(taskTitleToBreak, taskDescToBreak, desiredStepCount);
       setSteps(res.steps);
       setSourceStatus(res.source);
     } catch (e) {
@@ -51,15 +55,17 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
     const halfMinutes = Math.max(3, Math.floor((currentStep.estimatedMinutes || 10) / 2));
     const micro1: Subtask = {
       id: `micro-${Date.now()}-1`,
-      title: `Set a 5-minute timer and open just the first file for: "${currentStep.title}"`,
+      title: `Step A: Open materials & set 5m timer for "${currentStep.title}"`,
       completed: false,
       estimatedMinutes: halfMinutes,
+      starterAction: 'Launch tools',
     };
     const micro2: Subtask = {
       id: `micro-${Date.now()}-2`,
-      title: `Write down 1 bullet point or note before stopping: "${currentStep.title}"`,
+      title: `Step B: Write down 1 bullet point or note before stopping: "${currentStep.title}"`,
       completed: false,
       estimatedMinutes: halfMinutes,
+      starterAction: 'Jot 1 bullet',
     };
 
     const newSteps = [...steps];
@@ -84,13 +90,34 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
       onAddSubtasks(activeTask.id, steps);
       setApplied(true);
       setTimeout(() => onOpenTaskTab(), 1200);
+    } else if (onAddStandaloneTasks && steps.length > 0) {
+      const createdTasks: Task[] = steps.map((s) => ({
+        id: `task-sub-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        title: s.title,
+        description: `Micro-step from "${taskTitleToBreak}"`,
+        priority: 'medium',
+        completed: false,
+        estimatedMinutes: s.estimatedMinutes || 10,
+        createdAt: new Date().toISOString(),
+        energyLevel: 'normal',
+      }));
+      onAddStandaloneTasks(createdTasks);
+      setApplied(true);
+      setTimeout(() => onOpenTaskTab(), 1200);
     }
+  };
+
+  const handleCopyBreakdown = () => {
+    const text = steps.map((s, idx) => `${idx + 1}. ${s.title} (~${s.estimatedMinutes}m)`).join('\n');
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-[#E9E0D2] rounded-2xl p-6 border border-[#A6AD99]/30 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="bg-[#E9E0D2] rounded-2xl p-6 border border-[#A6AD99]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
         <div className="flex items-center gap-5">
           <SlothMascot state={isLoading ? 'thinking' : 'idle'} size="lg" />
           <div>
@@ -105,38 +132,56 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
               Shrink Overwhelming Tasks to Tiny Bites
             </h2>
             <p className="text-sm text-[#77766E] max-w-xl mt-1">
-              Procrastination is usually just a task that is too vaguely sized. We split intimidating projects into micro-actions so small your brain won't resist starting.
+              Procrastination is usually a task that is too vaguely sized. We split intimidating projects into domain-specific micro-actions so small your brain won't resist starting.
             </p>
           </div>
         </div>
 
         {sourceStatus && (
           <div className="px-3.5 py-1.5 rounded-lg text-xs font-mono bg-[#F5F0E7] text-[#39483B] border border-[#A6AD99]/40 shrink-0">
-            Engine: {sourceStatus === 'live_ai' ? 'Live Gemini / Gemma' : 'Deterministic Mode'}
+            Engine: {sourceStatus === 'live_ai' ? 'Live Gemini / Open-Weight' : 'Deterministic Mode'}
           </div>
         )}
       </div>
 
       {/* Task Selector / Custom Input */}
-      <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 space-y-4">
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-[#77766E] mb-2">
-            Choose an Existing Task or Enter a New One
-          </label>
-          <select
-            value={selectedTaskId}
-            onChange={(e) => setSelectedTaskId(e.target.value)}
-            className="w-full p-3 rounded-xl bg-[#F5F0E7]/60 border border-[#A6AD99]/40 text-sm text-[#22221F] focus:outline-none focus:ring-2 focus:ring-[#39483B]/30"
-          >
-            {tasks
-              .filter((t) => !t.completed)
-              .map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.title} ({t.priority.toUpperCase()})
-                </option>
-              ))}
-            <option value="custom">+ Type a custom intimidating task...</option>
-          </select>
+      <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 space-y-4 shadow-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="sm:col-span-2 space-y-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#77766E]">
+              Choose Existing Task or Enter a New One
+            </label>
+            <select
+              value={selectedTaskId}
+              onChange={(e) => setSelectedTaskId(e.target.value)}
+              className="w-full p-3 rounded-xl bg-[#F5F0E7]/60 border border-[#A6AD99]/40 text-sm text-[#22221F] focus:outline-none focus:ring-2 focus:ring-[#39483B]/30"
+            >
+              {tasks
+                .filter((t) => !t.completed)
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title} ({t.priority.toUpperCase()})
+                  </option>
+                ))}
+              <option value="custom">+ Type a custom intimidating project...</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#77766E]">
+              Desired Step Count
+            </label>
+            <select
+              value={desiredStepCount}
+              onChange={(e) => setDesiredStepCount(Number(e.target.value))}
+              className="w-full p-3 rounded-xl bg-[#F5F0E7]/60 border border-[#A6AD99]/40 text-sm text-[#22221F] focus:outline-none"
+            >
+              <option value={3}>3 Tiny Steps (Gentle)</option>
+              <option value={4}>4 Steps (Standard)</option>
+              <option value={6}>6 Steps (Detailed)</option>
+              <option value={8}>8 Steps (Comprehensive)</option>
+            </select>
+          </div>
         </div>
 
         {selectedTaskId === 'custom' && (
@@ -145,13 +190,13 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
               type="text"
               value={customTitle}
               onChange={(e) => setCustomTitle(e.target.value)}
-              placeholder="e.g. Write comprehensive thesis chapter or Clean out whole garage..."
+              placeholder="e.g. Complete thesis literature review or Refactor authentication API..."
               className="w-full p-3 rounded-xl bg-[#F5F0E7]/60 border border-[#A6AD99]/40 text-sm text-[#22221F] focus:outline-none focus:ring-2 focus:ring-[#39483B]/30"
             />
             <textarea
               value={customDesc}
               onChange={(e) => setCustomDesc(e.target.value)}
-              placeholder="Optional notes or context..."
+              placeholder="Optional notes or context to make steps more specific..."
               rows={2}
               className="w-full p-3 rounded-xl bg-[#F5F0E7]/60 border border-[#A6AD99]/40 text-xs text-[#22221F] focus:outline-none focus:ring-2 focus:ring-[#39483B]/30 resize-none"
             />
@@ -160,7 +205,7 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
 
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs text-[#77766E]">
-            Target: Each step will take between 5 to 15 minutes max.
+            Target: Every step takes under 15 minutes and starts in under 10 seconds.
           </span>
           <button
             onClick={handleBreakdown}
@@ -175,23 +220,32 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
 
       {/* Generated Steps */}
       {steps.length > 0 && (
-        <div className="bg-[#FFFFFF] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 space-y-6">
+        <div className="bg-[#FFFFFF] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 space-y-6 shadow-xs">
           <div className="flex items-center justify-between border-b border-[#A6AD99]/20 pb-4">
             <div>
               <span className="text-xs uppercase tracking-wider font-semibold text-[#39483B]">
-                Micro-Action Breakdown
+                Micro-Action Breakdown ({steps.length} steps)
               </span>
               <h3 className="text-lg font-serif font-bold text-[#22221F] mt-0.5">
                 "{taskTitleToBreak}"
               </h3>
             </div>
-            <button
-              onClick={handleBreakdown}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[#77766E] hover:bg-[#E9E0D2] transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Regenerate
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyBreakdown}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[#77766E] hover:bg-[#E9E0D2] transition-colors"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copied ? 'Copied!' : 'Copy'}</span>
+              </button>
+              <button
+                onClick={handleBreakdown}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[#77766E] hover:bg-[#E9E0D2] transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Regenerate</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -228,8 +282,12 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
                     <div className="flex items-center gap-2 text-[11px] text-[#77766E]">
                       <Clock className="w-3 h-3" />
                       <span>~{step.estimatedMinutes} mins</span>
-                      <span>·</span>
-                      <span>Micro-step #{idx + 1}</span>
+                      {step.starterAction && (
+                        <>
+                          <span>·</span>
+                          <span className="text-[#39483B] font-medium">Starter: {step.starterAction}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -251,22 +309,19 @@ export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
               Total time: ~{steps.reduce((acc, s) => acc + (s.estimatedMinutes || 10), 0)} mins across {steps.length} tiny actions.
             </span>
 
-            {selectedTaskId !== 'custom' ? (
-              <button
-                onClick={handleSaveToTask}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#39483B] text-[#F5F0E7] text-xs font-semibold hover:bg-[#2c392e] transition-colors shadow-sm"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {applied ? 'Saved to Task!' : 'Attach as Subtasks'}
-              </button>
-            ) : (
-              <button
-                onClick={onOpenTaskTab}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#39483B] text-[#F5F0E7] text-xs font-semibold hover:bg-[#2c392e] transition-colors"
-              >
-                <span>View Workspace Tasks</span>
-              </button>
-            )}
+            <button
+              onClick={handleSaveToTask}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#39483B] text-[#F5F0E7] text-xs font-semibold hover:bg-[#2c392e] transition-colors shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>
+                {applied
+                  ? 'Saved to Task List!'
+                  : selectedTaskId !== 'custom'
+                  ? 'Attach as Subtasks'
+                  : 'Add as New Tasks'}
+              </span>
+            </button>
           </div>
         </div>
       )}

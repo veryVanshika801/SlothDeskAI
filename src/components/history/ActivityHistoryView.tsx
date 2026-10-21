@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { ActivityItem } from '../../types';
 import { SlothMascot } from '../mascot/SlothMascot';
-import { History, CheckCircle2, PlusCircle, Sparkles, Calendar, Filter } from 'lucide-react';
+import { History, CheckCircle2, PlusCircle, Sparkles, RotateCcw, Trash2 } from 'lucide-react';
 
 interface ActivityHistoryViewProps {
   activities: ActivityItem[];
   onClearHistory: () => void;
+  onUndoActivity?: (item: ActivityItem) => void;
 }
 
 export const ActivityHistoryView: React.FC<ActivityHistoryViewProps> = ({
   activities,
   onClearHistory,
+  onUndoActivity,
 }) => {
   const [filterType, setFilterType] = useState<string>('all');
 
@@ -32,6 +34,8 @@ export const ActivityHistoryView: React.FC<ActivityHistoryViewProps> = ({
       case 'ai_low_energy':
       case 'ai_breakdown':
       case 'ai_notes':
+      case 'ai_quick_capture':
+      case 'ai_reschedule':
         return <Sparkles className="w-4 h-4 text-[#C47D61]" />;
       default:
         return <History className="w-4 h-4 text-[#77766E]" />;
@@ -41,7 +45,7 @@ export const ActivityHistoryView: React.FC<ActivityHistoryViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-[#E9E0D2] rounded-2xl p-6 border border-[#A6AD99]/30 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="bg-[#E9E0D2] rounded-2xl p-6 border border-[#A6AD99]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
         <div className="flex items-center gap-5">
           <SlothMascot state="idle" size="lg" />
           <div>
@@ -91,11 +95,11 @@ export const ActivityHistoryView: React.FC<ActivityHistoryViewProps> = ({
             </button>
           ))}
         </div>
-        <span className="text-xs text-[#77766E]">{filtered.length} entries</span>
+        <span className="text-xs text-[#77766E] font-mono">{filtered.length} entries</span>
       </div>
 
       {/* Timeline List */}
-      <div className="bg-[#FFFFFF] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 space-y-4">
+      <div className="bg-[#FFFFFF] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 space-y-4 shadow-xs">
         {filtered.length === 0 ? (
           <div className="text-center py-10 text-xs text-[#77766E]">
             No activity matches the current filter.
@@ -104,23 +108,36 @@ export const ActivityHistoryView: React.FC<ActivityHistoryViewProps> = ({
           filtered.map((item) => (
             <div
               key={item.id}
-              className="flex items-start gap-3.5 p-3.5 rounded-xl bg-[#F5F0E7]/40 border border-[#A6AD99]/20"
+              className="flex items-start justify-between gap-3.5 p-3.5 rounded-xl bg-[#F5F0E7]/40 border border-[#A6AD99]/20"
             >
-              <div className="p-2 rounded-lg bg-[#FFFFFF] border border-[#A6AD99]/30 shrink-0 mt-0.5">
-                {getIcon(item.type)}
-              </div>
-              <div className="flex-1 space-y-0.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-[#22221F]">{item.title}</span>
-                  <span className="text-[11px] font-mono text-[#77766E] tabular-nums">
-                    {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ·{' '}
-                    {new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                  </span>
+              <div className="flex items-start gap-3 flex-1">
+                <div className="p-2 rounded-lg bg-[#FFFFFF] border border-[#A6AD99]/30 shrink-0 mt-0.5">
+                  {getIcon(item.type)}
                 </div>
-                {item.details && (
-                  <p className="text-xs text-[#77766E]">{item.details}</p>
-                )}
+                <div className="flex-1 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-[#22221F]">{item.title}</span>
+                    <span className="text-[11px] font-mono text-[#77766E] tabular-nums">
+                      {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ·{' '}
+                      {new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  {item.details && (
+                    <p className="text-xs text-[#77766E]">{item.details}</p>
+                  )}
+                </div>
               </div>
+
+              {item.undoable && onUndoActivity && (
+                <button
+                  onClick={() => onUndoActivity(item)}
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-lg text-[#39483B] bg-white border border-[#A6AD99]/40 hover:bg-[#E9E0D2] shrink-0"
+                  title="Undo this operation"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Undo</span>
+                </button>
+              )}
             </div>
           ))
         )}

@@ -8,11 +8,13 @@ import {
   Clock,
   Calendar,
   Search,
-  Filter,
   Scissors,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Play,
+  Edit2,
+  Tag,
+  ArrowUpDown,
 } from 'lucide-react';
 
 interface TasksViewProps {
@@ -22,6 +24,7 @@ interface TasksViewProps {
   onDeleteTask: (taskId: string) => void;
   onToggleComplete: (taskId: string) => void;
   onOpenMakeSmaller: (taskTitle: string) => void;
+  onStartFocusOnTask: (taskId: string) => void;
 }
 
 export const TasksView: React.FC<TasksViewProps> = ({
@@ -31,19 +34,26 @@ export const TasksView: React.FC<TasksViewProps> = ({
   onDeleteTask,
   onToggleComplete,
   onOpenMakeSmaller,
+  onStartFocusOnTask,
 }) => {
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'completed'>('open');
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'created' | 'priority' | 'duration' | 'due'>('priority');
   const [expandedTaskIds, setExpandedTaskIds] = useState<Record<string, boolean>>({});
 
   // Quick-Add form state
   const [newTitle, setNewTitle] = useState('');
   const [newPriority, setNewPriority] = useState<Priority>('medium');
+  const [newCategory, setNewCategory] = useState('Work');
   const [newMinutes, setNewMinutes] = useState<number>(25);
   const [newDueDate, setNewDueDate] = useState('');
   const [showQuickAddDetails, setShowQuickAddDetails] = useState(false);
+
+  // Edit Task Modal State
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Undo support
   const [lastDeletedTask, setLastDeletedTask] = useState<Task | null>(null);
@@ -56,6 +66,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
       id: `task-${Date.now()}`,
       title: newTitle.trim(),
       priority: newPriority,
+      category: newCategory,
       completed: false,
       estimatedMinutes: newMinutes,
       dueDate: newDueDate || undefined,
@@ -92,20 +103,51 @@ export const TasksView: React.FC<TasksViewProps> = ({
     onUpdateTask({ ...task, subtasks: updatedSubtasks });
   };
 
-  // Filter tasks
-  const filteredTasks = tasks.filter((t) => {
-    if (statusFilter === 'open' && t.completed) return false;
-    if (statusFilter === 'completed' && !t.completed) return false;
-    if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = t.title.toLowerCase().includes(q);
-      const matchDesc = t.description?.toLowerCase().includes(q);
-      const matchTags = t.tags?.some((tag) => tag.toLowerCase().includes(q));
-      if (!matchTitle && !matchDesc && !matchTags) return false;
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingTask) {
+      onUpdateTask(editingTask);
+      setEditingTask(null);
     }
-    return true;
-  });
+  };
+
+  // Collect unique categories for filter
+  const uniqueCategories = Array.from(
+    new Set(tasks.map((t) => t.category).filter(Boolean))
+  ) as string[];
+
+  // Filter tasks
+  const filteredTasks = tasks
+    .filter((t) => {
+      if (statusFilter === 'open' && t.completed) return false;
+      if (statusFilter === 'completed' && !t.completed) return false;
+      if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+      if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = t.title.toLowerCase().includes(q);
+        const matchDesc = t.description?.toLowerCase().includes(q);
+        const matchCat = t.category?.toLowerCase().includes(q);
+        const matchTags = t.tags?.some((tag) => tag.toLowerCase().includes(q));
+        if (!matchTitle && !matchDesc && !matchTags && !matchCat) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'priority') {
+        const order = { high: 1, medium: 2, low: 3 };
+        return order[a.priority] - order[b.priority];
+      }
+      if (sortBy === 'duration') {
+        return (a.estimatedMinutes || 0) - (b.estimatedMinutes || 0);
+      }
+      if (sortBy === 'due') {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return a.dueDate.localeCompare(b.dueDate);
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   return (
     <div className="space-y-6">
@@ -137,7 +179,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
               type="button"
               onClick={() => setShowQuickAddDetails(!showQuickAddDetails)}
               className="px-3 py-3 rounded-xl border border-[#A6AD99]/40 text-xs text-[#77766E] hover:bg-[#F5F0E7]"
-              title="Toggle options"
+              title="Toggle priority & duration"
             >
               {showQuickAddDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
@@ -167,6 +209,17 @@ export const TasksView: React.FC<TasksViewProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                <span className="text-[#77766E]">Category:</span>
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="e.g. Work, Health, Study"
+                  className="w-24 bg-[#FFFFFF] px-2 py-1 rounded border border-[#A6AD99]/40 text-xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
                 <span className="text-[#77766E]">Est. Time:</span>
                 <input
                   type="number"
@@ -192,20 +245,20 @@ export const TasksView: React.FC<TasksViewProps> = ({
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#77766E]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tasks by title, note, or tag..."
+            placeholder="Search tasks by title, note, or category..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FFFFFF] border border-[#A6AD99]/30 text-xs text-[#22221F] placeholder:text-[#77766E] focus:outline-none"
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Status Tabs (functional buttons) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Status Tabs */}
           <div className="flex items-center p-1 bg-[#E9E0D2] rounded-xl border border-[#A6AD99]/30 text-xs">
             {(['all', 'open', 'completed'] as const).map((s) => (
               <button
@@ -233,13 +286,44 @@ export const TasksView: React.FC<TasksViewProps> = ({
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
+
+          {/* Category filter */}
+          {uniqueCategories.length > 0 && (
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-[#FFFFFF] border border-[#A6AD99]/30 text-xs text-[#77766E] focus:outline-none"
+            >
+              <option value="all">All Categories</option>
+              {uniqueCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Sort selector */}
+          <div className="flex items-center gap-1 bg-[#FFFFFF] px-2.5 py-1.5 rounded-xl border border-[#A6AD99]/30 text-xs text-[#77766E]">
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-transparent focus:outline-none text-xs text-[#22221F]"
+            >
+              <option value="priority">Priority</option>
+              <option value="duration">Duration</option>
+              <option value="due">Due Date</option>
+              <option value="created">Recent</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Task List */}
       <div className="space-y-3">
         {filteredTasks.length === 0 ? (
-          <div className="bg-[#FFFFFF] rounded-2xl p-10 border border-[#A6AD99]/30 flex flex-col items-center justify-center text-center space-y-3">
+          <div className="bg-[#FFFFFF] rounded-2xl p-10 border border-[#A6AD99]/30 flex flex-col items-center justify-center text-center space-y-3 shadow-xs">
             <SlothMascot state="empty-state" size="lg" />
             <h4 className="text-base font-serif font-bold text-[#22221F]">All Clear at Sloth Pace</h4>
             <p className="text-xs text-[#77766E] max-w-sm">
@@ -270,6 +354,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
                           ? 'bg-[#39483B] border-[#39483B] text-[#F5F0E7]'
                           : 'border-[#A6AD99] hover:border-[#39483B] bg-white'
                       }`}
+                      title={task.completed ? 'Reopen task' : 'Mark task complete'}
                     >
                       {task.completed && <Check className="w-3.5 h-3.5" />}
                     </button>
@@ -278,15 +363,12 @@ export const TasksView: React.FC<TasksViewProps> = ({
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
                           className={`text-sm font-medium ${
-                            task.completed
-                              ? 'line-through text-[#77766E]'
-                              : 'text-[#22221F]'
+                            task.completed ? 'line-through text-[#77766E]' : 'text-[#22221F]'
                           }`}
                         >
                           {task.title}
                         </span>
 
-                        {/* Priority indicator text (no pill boxes) */}
                         <span className="text-[11px] text-[#77766E]">
                           ·{' '}
                           <span
@@ -301,6 +383,12 @@ export const TasksView: React.FC<TasksViewProps> = ({
                             {task.priority.toUpperCase()}
                           </span>
                         </span>
+
+                        {task.category && (
+                          <span className="text-[11px] text-[#77766E]">
+                            · {task.category}
+                          </span>
+                        )}
 
                         {task.estimatedMinutes && (
                           <span className="text-[11px] text-[#77766E]">
@@ -342,13 +430,32 @@ export const TasksView: React.FC<TasksViewProps> = ({
 
                   {/* Task Card Actions */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {!task.completed && (
+                      <button
+                        onClick={() => onStartFocusOnTask(task.id)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#39483B] bg-[#E9E0D2] hover:bg-[#ded3c1] transition-colors"
+                        title="Enter One-Task Focus Mode"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span className="hidden sm:inline">Focus</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => onOpenMakeSmaller(task.title)}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#39483B] bg-[#E3E8DD] hover:bg-[#d5ded0] transition-colors"
-                      title="Deconstruct this task into micro-actions with AI"
+                      title="Deconstruct into micro-actions"
                     >
                       <Scissors className="w-3 h-3" />
-                      <span className="hidden sm:inline">Make Smaller</span>
+                      <span className="hidden sm:inline">Simplify</span>
+                    </button>
+
+                    <button
+                      onClick={() => setEditingTask(task)}
+                      className="p-1.5 rounded-lg text-[#77766E] hover:text-[#22221F] hover:bg-[#F5F0E7]"
+                      title="Edit task"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
                     </button>
 
                     <button
@@ -396,6 +503,96 @@ export const TasksView: React.FC<TasksViewProps> = ({
           })
         )}
       </div>
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSaveEdit}
+            className="bg-[#F5F0E7] rounded-3xl max-w-lg w-full p-6 border border-[#A6AD99] shadow-2xl space-y-4"
+          >
+            <h3 className="font-serif text-lg font-bold text-[#22221F]">Edit Task</h3>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[#77766E] font-medium mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editingTask.title}
+                  onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-white border border-[#A6AD99]/40 text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#77766E] font-medium mb-1">Description</label>
+                <textarea
+                  value={editingTask.description || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                  rows={3}
+                  className="w-full p-2.5 rounded-xl bg-white border border-[#A6AD99]/40 text-xs resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[#77766E] font-medium mb-1">Priority</label>
+                  <select
+                    value={editingTask.priority}
+                    onChange={(e) =>
+                      setEditingTask({ ...editingTask, priority: e.target.value as Priority })
+                    }
+                    className="w-full p-2 rounded-xl bg-white border border-[#A6AD99]/40"
+                  >
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[#77766E] font-medium mb-1">Estimated Minutes</label>
+                  <input
+                    type="number"
+                    value={editingTask.estimatedMinutes || 25}
+                    onChange={(e) =>
+                      setEditingTask({ ...editingTask, estimatedMinutes: Number(e.target.value) })
+                    }
+                    className="w-full p-2 rounded-xl bg-white border border-[#A6AD99]/40"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[#77766E] font-medium mb-1">Due Date</label>
+                <input
+                  type="date"
+                  value={editingTask.dueDate || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, dueDate: e.target.value })}
+                  className="w-full p-2 rounded-xl bg-white border border-[#A6AD99]/40"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#A6AD99]/30">
+              <button
+                type="button"
+                onClick={() => setEditingTask(null)}
+                className="px-4 py-2 rounded-xl text-xs text-[#77766E] hover:text-[#22221F]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-[#39483B] text-[#F5F0E7] text-xs font-semibold hover:bg-[#2c392e]"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

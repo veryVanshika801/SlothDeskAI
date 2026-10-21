@@ -1,5 +1,5 @@
 import React from 'react';
-import { Task, EnergyLevel, MascotState } from '../../types';
+import { Task, SlothGardenData, MascotState } from '../../types';
 import { SlothMascot } from '../mascot/SlothMascot';
 import {
   CheckCircle2,
@@ -10,20 +10,30 @@ import {
   NotebookPen,
   ArrowRight,
   Check,
+  Play,
+  Trees,
+  Layers,
+  Coffee,
 } from 'lucide-react';
 
 interface DashboardOverviewProps {
   tasks: Task[];
+  garden: SlothGardenData;
   onOpenTab: (tab: string) => void;
   onToggleComplete: (taskId: string) => void;
   onOpenMakeSmaller: (taskTitle: string) => void;
+  onStartFocusOnTask: (taskId: string) => void;
+  onOpenQuickCapture: () => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   tasks,
+  garden,
   onOpenTab,
   onToggleComplete,
   onOpenMakeSmaller,
+  onStartFocusOnTask,
+  onOpenQuickCapture,
 }) => {
   const openTasks = tasks.filter((t) => !t.completed);
   const completedTasks = tasks.filter((t) => t.completed);
@@ -33,6 +43,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     (acc, t) => acc + (t.estimatedMinutes || 20),
     0
   );
+
+  const topNextTask = openTasks[0];
 
   // Contextual sloth message based on real data
   let slothMessage = "Everything's calm. Move at your natural pace.";
@@ -49,7 +61,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     mascotState = 'idle';
   }
 
-  // Time of day greeting
   const hour = new Date().getHours();
   const timeGreeting =
     hour < 12
@@ -87,21 +98,50 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         <div className="flex flex-col sm:flex-row gap-3 shrink-0">
           <button
-            onClick={() => onOpenTab('low-energy')}
-            className="px-4 py-2.5 rounded-xl bg-[#E3E8DD] hover:bg-[#d6ded0] text-[#39483B] text-xs font-semibold transition-colors border border-[#A6AD99]/40 flex items-center gap-2"
+            onClick={onOpenQuickCapture}
+            className="px-4 py-2.5 rounded-xl bg-white hover:bg-[#F5F0E7] text-[#22221F] text-xs font-semibold transition-colors border border-[#A6AD99]/40 flex items-center gap-2 shadow-xs"
           >
-            <span>Low-Energy Sanctuary</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5 text-[#39483B]" />
+            <span>Quick Brain Dump</span>
           </button>
           <button
-            onClick={() => onOpenTab('organizer')}
+            onClick={() => onOpenTab('low-energy')}
             className="px-4 py-2.5 rounded-xl bg-[#39483B] hover:bg-[#2c392e] text-[#F5F0E7] text-xs font-semibold transition-colors shadow-sm flex items-center gap-2"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Organize My Mess</span>
+            <Coffee className="w-3.5 h-3.5" />
+            <span>Low-Energy Mode</span>
           </button>
         </div>
       </div>
+
+      {/* Recommended Next Action Focus Strip */}
+      {topNextTask && (
+        <div className="bg-[#E3E8DD]/80 rounded-2xl p-5 border border-[#A6AD99]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#39483B] text-white flex items-center justify-center shrink-0">
+              <Play className="w-4 h-4 fill-current" />
+            </div>
+            <div>
+              <span className="text-[11px] uppercase tracking-wider font-semibold text-[#39483B] block">
+                Single Next Action
+              </span>
+              <span className="text-sm font-semibold text-[#22221F] block">
+                {topNextTask.title}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            <button
+              onClick={() => onStartFocusOnTask(topNextTask.id)}
+              className="px-4 py-2 rounded-xl bg-[#39483B] text-white text-xs font-semibold hover:bg-[#2c392e] transition-colors flex items-center gap-1.5 shadow-xs"
+            >
+              <span>Enter Focus Mode</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Real Application Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -176,7 +216,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             {
               id: 'notes',
               title: 'Summarize Notes',
-              desc: 'Extract key points and action items from transcripts.',
+              desc: 'Extract key points and action items from transcripts & docs.',
               icon: NotebookPen,
               cta: 'Extract Actions',
             },
@@ -217,81 +257,124 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
       </div>
 
-      {/* Today's Priorities List */}
-      <div className="bg-[#FFFFFF] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b border-[#A6AD99]/20 pb-4">
-          <div>
-            <h2 className="text-base font-serif font-bold text-[#22221F]">
-              Today's Key Priorities
-            </h2>
-            <p className="text-xs text-[#77766E] mt-0.5">
-              Focus on these items without feeling pressured to clear everything.
-            </p>
-          </div>
-          <button
-            onClick={() => onOpenTab('tasks')}
-            className="text-xs font-semibold text-[#39483B] hover:underline flex items-center gap-1"
-          >
-            <span>View All Tasks</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {openTasks.slice(0, 4).map((task) => (
-            <div
-              key={task.id}
-              className="p-4 rounded-xl bg-[#F5F0E7]/40 border border-[#A6AD99]/25 hover:border-[#A6AD99] flex items-center justify-between gap-4 transition-colors"
+      {/* Two Column Layout: Priorities & Garden Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Today's Priorities List */}
+        <div className="lg:col-span-2 bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-[#A6AD99]/20 pb-4">
+            <div>
+              <h2 className="text-base font-serif font-bold text-[#22221F]">
+                Today's Key Priorities
+              </h2>
+              <p className="text-xs text-[#77766E] mt-0.5">
+                Focus on these items without feeling pressured to clear everything.
+              </p>
+            </div>
+            <button
+              onClick={() => onOpenTab('tasks')}
+              className="text-xs font-semibold text-[#39483B] hover:underline flex items-center gap-1"
             >
-              <div className="flex items-center gap-3.5 flex-1">
-                <button
-                  onClick={() => onToggleComplete(task.id)}
-                  className="w-5 h-5 rounded border border-[#A6AD99] bg-white hover:border-[#39483B] flex items-center justify-center transition-colors shrink-0"
-                >
-                  {task.completed && <Check className="w-3.5 h-3.5 text-[#39483B]" />}
-                </button>
+              <span>View All Tasks</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-                <div>
-                  <div className="text-sm font-medium text-[#22221F]">
-                    {task.title}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#77766E] mt-0.5">
-                    <span
-                      className={`font-semibold ${
-                        task.priority === 'high'
-                          ? 'text-[#C47D61]'
-                          : task.priority === 'medium'
-                          ? 'text-[#39483B]'
-                          : 'text-[#77766E]'
-                      }`}
-                    >
-                      {task.priority.toUpperCase()}
-                    </span>
-                    {task.estimatedMinutes && (
-                      <>
-                        <span>·</span>
-                        <span>~{task.estimatedMinutes} mins</span>
-                      </>
-                    )}
+          <div className="space-y-3">
+            {openTasks.slice(0, 4).map((task) => (
+              <div
+                key={task.id}
+                className="p-4 rounded-xl bg-[#F5F0E7]/40 border border-[#A6AD99]/25 hover:border-[#A6AD99] flex items-center justify-between gap-4 transition-colors"
+              >
+                <div className="flex items-center gap-3.5 flex-1">
+                  <button
+                    onClick={() => onToggleComplete(task.id)}
+                    className="w-5 h-5 rounded border border-[#A6AD99] bg-white hover:border-[#39483B] flex items-center justify-center transition-colors shrink-0"
+                  >
+                    {task.completed && <Check className="w-3.5 h-3.5 text-[#39483B]" />}
+                  </button>
+
+                  <div>
+                    <div className="text-sm font-medium text-[#22221F]">
+                      {task.title}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-[#77766E] mt-0.5">
+                      <span
+                        className={`font-semibold ${
+                          task.priority === 'high'
+                            ? 'text-[#C47D61]'
+                            : task.priority === 'medium'
+                            ? 'text-[#39483B]'
+                            : 'text-[#77766E]'
+                        }`}
+                      >
+                        {task.priority.toUpperCase()}
+                      </span>
+                      {task.estimatedMinutes && (
+                        <>
+                          <span>·</span>
+                          <span>~{task.estimatedMinutes} mins</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => onStartFocusOnTask(task.id)}
+                    className="p-2 rounded-lg text-[#39483B] hover:bg-[#E9E0D2] transition-colors"
+                    title="Focus on this task"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                  </button>
+                  <button
+                    onClick={() => onOpenMakeSmaller(task.title)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-[#39483B] bg-[#E3E8DD] hover:bg-[#d6ded0] transition-colors"
+                  >
+                    <Scissors className="w-3 h-3" />
+                    <span>Simplify</span>
+                  </button>
+                </div>
               </div>
+            ))}
 
-              <button
-                onClick={() => onOpenMakeSmaller(task.title)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-[#39483B] bg-[#E3E8DD] hover:bg-[#d6ded0] transition-colors shrink-0"
-              >
-                <Scissors className="w-3 h-3" />
-                <span>Simplify</span>
-              </button>
-            </div>
-          ))}
+            {openTasks.length === 0 && (
+              <div className="py-8 text-center text-xs text-[#77766E]">
+                No active tasks remaining. Add one from the tasks tab or dump messy notes!
+              </div>
+            )}
+          </div>
+        </div>
 
-          {openTasks.length === 0 && (
-            <div className="py-8 text-center text-xs text-[#77766E]">
-              No active tasks remaining. Add one from the tasks tab or dump messy notes!
+        {/* Right: Sloth Garden Preview */}
+        <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 shadow-xs flex flex-col justify-between">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-[#A6AD99]/20 pb-3">
+              <div className="flex items-center gap-2">
+                <Trees className="w-4 h-4 text-[#39483B]" />
+                <span className="font-serif font-bold text-sm text-[#22221F]">Sloth Garden</span>
+              </div>
+              <span className="text-xs text-[#39483B] font-semibold font-mono">Stage {garden.treeStage}/5</span>
             </div>
-          )}
+
+            <div className="text-center py-2">
+              <SlothMascot state="garden" size="md" />
+              <div className="mt-3 text-3xl font-serif font-bold text-[#39483B] tabular-nums">
+                {garden.leafCount}
+              </div>
+              <span className="text-xs text-[#77766E] font-medium block">Permanent Leaves Sprouted</span>
+              <p className="text-[11px] text-[#77766E] mt-2 italic">
+                "No guilt for quiet days. Your tree waits peacefully."
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onOpenTab('garden')}
+            className="w-full mt-4 py-2 rounded-xl bg-[#E3E8DD] hover:bg-[#d5dfd0] text-[#39483B] text-xs font-semibold transition-colors"
+          >
+            Visit Garden Sanctuary
+          </button>
         </div>
       </div>
     </div>

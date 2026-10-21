@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Task, NoteAnalysisResult, Priority } from '../../types';
 import { convertNotesToActions } from '../../services/aiService';
 import { SlothMascot } from '../mascot/SlothMascot';
-import { Sparkles, Check, Plus, Calendar, HelpCircle, FileText, ArrowRight } from 'lucide-react';
+import { Sparkles, Check, Plus, Calendar, HelpCircle, FileText, Upload, AlertCircle, FileCheck } from 'lucide-react';
 
 interface NotesToActionViewProps {
   onAddTasks: (newTasks: Task[]) => void;
@@ -13,20 +13,51 @@ export const NotesToActionView: React.FC<NotesToActionViewProps> = ({
   onAddTasks,
   onOpenTaskTab,
 }) => {
+  const [inputMode, setInputMode] = useState<'text' | 'file'>('text');
   const [notes, setNotes] = useState(
     `Project Sync with Sarah - Oct 21
 Discussed the new design system rollout. The warm ivory palette feels much calmer.
 Key decisions:
 - Finalize the typography tokens by Friday.
-- Need to check if the mobile menu works properly on iPhone screens.
-- Open question: Are we including calendar sync in phase 1 or postponing to phase 2?
-Sarah mentioned we should send the updated demo link to the client by next Monday.`
+- Need to verify if the mobile drawer works properly on narrow screens.
+- Open question: Should we support calendar synchronization in phase 2?
+Sarah explicitly requested sending the updated preview link to the client by next Monday.`
   );
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [uploadedFileSize, setUploadedFileSize] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<NoteAnalysisResult | null>(null);
   const [sourceStatus, setSourceStatus] = useState<string | null>(null);
   const [selectedActions, setSelectedActions] = useState<Record<number, boolean>>({});
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+      setFileError('File size exceeds 1MB limit. Please provide a lighter text document.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        setNotes(content);
+        setUploadedFileName(file.name);
+        setUploadedFileSize(`${(file.size / 1024).toFixed(1)} KB`);
+      }
+    };
+    reader.onerror = () => {
+      setFileError('Could not read text file. Ensure it is a valid UTF-8 text document.');
+    };
+    reader.readAsText(file);
+  };
 
   const handleAnalyze = async () => {
     if (!notes.trim()) return;
@@ -36,7 +67,7 @@ Sarah mentioned we should send the updated demo link to the client by next Monda
       const res = await convertNotesToActions(notes);
       setAnalysis(res.analysis);
       setSourceStatus(res.source);
-      // Select all actions by default
+      // Select all by default
       const initialMap: Record<number, boolean> = {};
       res.analysis.extractedActions.forEach((_, i) => {
         initialMap[i] = true;
@@ -61,8 +92,9 @@ Sarah mentioned we should send the updated demo link to the client by next Monda
     const newTasks: Task[] = actionsToConvert.map((a) => ({
       id: `task-note-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       title: a.title,
-      description: `Extracted from note summary. Mentioned timeline: ${a.explicitDateMentioned || 'Flexible'}`,
+      description: `Extracted from note summary. Timeline: ${a.explicitDateMentioned || 'Flexible'}`,
       priority: a.priority,
+      category: 'Notes',
       completed: false,
       estimatedMinutes: a.estimatedMinutes,
       tags: ['Notes', 'Extracted'],
@@ -93,34 +125,103 @@ Sarah mentioned we should send the updated demo link to the client by next Monda
               Extract Actionable Clarity from Walls of Text
             </h2>
             <p className="text-sm text-[#77766E] max-w-xl mt-1">
-              Paste meeting recaps, lectures, or reading notes. The sloth isolates commitments, dates explicitly stated, open questions, and concrete tasks.
+              Paste meeting recaps, lecture summaries, or upload text documents (.txt, .md). The sloth isolates explicit dates, key decisions, open questions, and concrete tasks.
             </p>
           </div>
         </div>
 
         {sourceStatus && (
           <div className="px-3.5 py-1.5 rounded-lg text-xs font-mono bg-[#F5F0E7] text-[#39483B] border border-[#A6AD99]/40 shrink-0">
-            Engine: {sourceStatus === 'live_ai' ? 'Live Gemini / Gemma' : 'Deterministic Mode'}
+            Engine: {sourceStatus === 'live_ai' ? 'Live Gemini / Open-Weight' : 'Deterministic Mode'}
           </div>
         )}
       </div>
 
-      {/* Input Notes Area */}
-      <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 space-y-4">
-        <label className="block text-xs font-semibold uppercase tracking-wider text-[#77766E]">
-          Raw Notes / Meeting Transcript
-        </label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Paste meeting text or lecture notes here..."
-          rows={6}
-          className="w-full p-4 rounded-xl bg-[#F5F0E7]/60 border border-[#A6AD99]/40 text-sm text-[#22221F] focus:outline-none focus:ring-2 focus:ring-[#39483B]/30 resize-none font-sans"
-        />
+      {/* Input Mode Selector & Text Area */}
+      <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 space-y-4 shadow-xs">
+        <div className="flex items-center justify-between border-b border-[#A6AD99]/20 pb-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setInputMode('text')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                inputMode === 'text'
+                  ? 'bg-[#39483B] text-[#F5F0E7]'
+                  : 'text-[#77766E] hover:text-[#22221F]'
+              }`}
+            >
+              Paste Text / Notes
+            </button>
+            <button
+              onClick={() => setInputMode('file')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                inputMode === 'file'
+                  ? 'bg-[#39483B] text-[#F5F0E7]'
+                  : 'text-[#77766E] hover:text-[#22221F]'
+              }`}
+            >
+              Upload Document (.txt, .md)
+            </button>
+          </div>
+
+          {uploadedFileName && (
+            <div className="flex items-center gap-1.5 text-xs text-[#39483B] font-mono">
+              <FileCheck className="w-3.5 h-3.5" />
+              <span>{uploadedFileName} ({uploadedFileSize})</span>
+            </div>
+          )}
+        </div>
+
+        {inputMode === 'text' ? (
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Paste meeting transcript or reading notes here..."
+            rows={6}
+            className="w-full p-4 rounded-xl bg-[#F5F0E7]/60 border border-[#A6AD99]/40 text-sm text-[#22221F] focus:outline-none focus:ring-2 focus:ring-[#39483B]/30 resize-none font-sans"
+          />
+        ) : (
+          <div className="space-y-3">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-[#A6AD99]/50 hover:border-[#39483B] rounded-2xl p-8 text-center cursor-pointer bg-[#F5F0E7]/40 hover:bg-[#F5F0E7]/70 transition-colors space-y-2"
+            >
+              <Upload className="w-6 h-6 text-[#77766E] mx-auto" />
+              <div className="text-xs font-medium text-[#22221F]">
+                Click to browse or drop a text file (.txt, .md, .json)
+              </div>
+              <div className="text-[11px] text-[#77766E]">Maximum file size: 1 MB</div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.md,.json,text/plain,text/markdown"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </div>
+
+            {notes && (
+              <div className="space-y-1">
+                <span className="text-[11px] text-[#77766E] font-semibold uppercase tracking-wider">
+                  Loaded Content Preview
+                </span>
+                <div className="p-3 rounded-xl bg-[#F5F0E7]/50 border border-[#A6AD99]/30 text-xs text-[#77766E] max-h-32 overflow-y-auto font-mono whitespace-pre-wrap">
+                  {notes.slice(0, 400)} {notes.length > 400 ? '...' : ''}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {fileError && (
+          <div className="p-3 rounded-xl bg-[#C47D61]/10 border border-[#C47D61]/30 text-xs text-[#C47D61] flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{fileError}</span>
+          </div>
+        )}
 
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs text-[#77766E]">
-            Honest extraction: Explicit source dates are distinguished from assumptions.
+            Honest extraction: Explicit source dates and decisions are separated from suggestions.
           </span>
           <button
             onClick={handleAnalyze}
@@ -136,24 +237,23 @@ Sarah mentioned we should send the updated demo link to the client by next Monda
       {/* Analysis Output */}
       {analysis && (
         <div className="space-y-6">
-          {/* Summary & Key Points */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 space-y-3">
+            <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 space-y-3 shadow-xs">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#39483B]">
                 <FileText className="w-4 h-4" />
-                <span>Concise Executive Summary</span>
+                <span>Executive Summary</span>
               </div>
               <p className="text-sm text-[#22221F] leading-relaxed">
                 {analysis.conciseSummary}
               </p>
             </div>
 
-            <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 space-y-3">
+            <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 space-y-3 shadow-xs">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#39483B]">
                 <Sparkles className="w-4 h-4" />
-                <span>Key Takeaways</span>
+                <span>Key Decisions & Takeaways</span>
               </div>
-              <ul className="text-xs text-[#22221F] space-y-2">
+              <ul className="text-xs text-[#22221F] space-y-1.5">
                 {analysis.keyPoints.map((point, idx) => (
                   <li key={idx} className="flex items-start gap-2">
                     <span className="text-[#39483B] font-bold">·</span>
@@ -165,7 +265,7 @@ Sarah mentioned we should send the updated demo link to the client by next Monda
           </div>
 
           {/* Action Items to Convert */}
-          <div className="bg-[#FFFFFF] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 space-y-4">
+          <div className="bg-[#FFFFFF] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-[#A6AD99]/20 pb-3">
               <div>
                 <span className="text-xs font-semibold uppercase tracking-wider text-[#39483B]">
@@ -192,8 +292,8 @@ Sarah mentioned we should send the updated demo link to the client by next Monda
                   <input
                     type="checkbox"
                     checked={!!selectedActions[idx]}
-                    onChange={() => {}} // handled by parent onClick
-                    className="mt-0.5 w-4 h-4 rounded text-[#39483B] focus:ring-[#39483B]"
+                    onChange={() => {}}
+                    className="mt-0.5 w-4 h-4 rounded text-[#39483B]"
                   />
                   <div className="flex-1 space-y-1">
                     <div className="text-sm font-medium text-[#22221F]">{action.title}</div>
@@ -212,6 +312,10 @@ Sarah mentioned we should send the updated demo link to the client by next Monda
                           </span>
                         </>
                       )}
+                      <span>·</span>
+                      <span className="text-[11px] font-mono">
+                        {action.isExplicitInSource ? '✓ Explicit in text' : 'Inferred by AI'}
+                      </span>
                     </div>
                   </div>
                 </div>

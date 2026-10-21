@@ -104,6 +104,7 @@ export const SlothMascot: React.FC<SlothMascotProps> = ({
           </svg>
         );
 
+      case 'generating':
       case 'thinking':
         return (
           <svg
