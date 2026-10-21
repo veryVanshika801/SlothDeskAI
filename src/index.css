@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-ivory: #F5F0E7;
+    --surface-cream: #E9E0D2;
+    --surface-pale-sage: #E3E8DD;
+    --forest-green: #39483B;
+    --forest-green-hover: #2d3b2f;
+    --charcoal: #22221F;
+    --muted-sage: #A6AD99;
+    --warm-taupe: #9B846C;
+    --terracotta: #C47D61;
+    --text-muted: #77766E;
+  }
+
+  body {
+    background-color: var(--bg-ivory);
+    color: var(--charcoal);
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1, h2, .font-editorial {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+}
+
+/* Custom smooth transitions & animations */
+@keyframes slothSway {
+  0%, 100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(2.5deg);
+  }
+}
+
+@keyframes slothBlink {
+  0%, 90%, 100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes hammockRock {
+  0%, 100% {
+    transform: rotate(-1.5deg) translateY(0);
+  }
+  50% {
+    transform: rotate(1.5deg) translateY(2px);
+  }
+}
+
+@keyframes leafFloat {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(6deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+@keyframes gentlePulse {
+  0%, 100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+.animate-sloth-sway {
+  animation: slothSway 4.5s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+.animate-sloth-blink {
+  animation: slothBlink 5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.animate-hammock-rock {
+  animation: hammockRock 6s ease-in-out infinite;
+  transform-origin: center top;
+}
+
+.animate-leaf-float {
+  animation: leafFloat 4s ease-in-out infinite;
+}
+
+.font-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

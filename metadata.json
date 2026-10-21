@@ -1,0 +1,6 @@
+{
+  "name": "SlothDesk AI",
+  "description": "A calm, intelligent productivity companion that turns everyday chaos into calm, achievable progress with open-weight AI transparency and a lovable sloth mascot.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

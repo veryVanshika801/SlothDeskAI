@@ -1,0 +1,844 @@
+# SL OTHDESK AI — COMPLETE PRODUCT BUILD & DESIGN DIRECTIVE
+
+Build a complete, premium, highly interactive productivity web application called **SlothDesk AI**. Do not create just a landing page, a static mockup, or a generic AI chatbot. Build a cohesive product with a cinematic website, a functional application dashboard, real task-management workflows, meaningful AI capabilities, a consistent cute sloth mascot, and sophisticated scroll-driven animations.
+
+Use the existing project as the starting point if one exists. Inspect its framework, package configuration, components, and current features before making changes. Preserve working functionality and avoid unnecessary rewrites.
+
+The final result must be compatible with GitHub and deployment to Vercel's free Hobby plan, subject to its limits. Prioritize a working, responsive, polished product over decorative features that break functionality.
+
+---
+
+# 1. PRODUCT VISION
+
+SlothDesk AI is a calm, intelligent productivity companion that helps people get things done with less mental effort.
+
+Core product philosophy:
+
+- Turn messy thoughts into organized tasks.
+- Make overwhelming tasks feel manageable.
+- Create realistic plans based on available time and energy.
+- Summarize long notes and extract actionable information.
+- Encourage consistent progress without guilt or pressure.
+- Use open-weight AI meaningfully, with transparent model status and honest error handling.
+
+Brand personality: calm, intelligent, playful, comforting, slightly quirky, and professionally designed.
+
+The sloth is the signature character. It should appear throughout the experience as a small, adorable companion that is casually chilling, hanging from branches, napping in a hammock, peeking from cards, holding a tiny coffee cup, or celebrating small achievements.
+
+Do not let the mascot overwhelm the product. It should add personality without compromising usability or making the interface look childish.
+
+Tagline direction: **“Work smarter. Move slower. Get there.”**
+
+Supporting message: “Your personal AI companion for turning everyday chaos into calm, achievable progress.”
+
+---
+
+# 2. VISUAL DESIGN SYSTEM
+
+Create a distinctive visual identity inspired by premium productivity software, sophisticated editorial websites, and modern creative technology products.
+
+## Color palette
+
+Use these colors consistently:
+
+- Warm ivory background: #F5F0E7
+- Soft cream surfaces: #E9E0D2
+- Forest green primary: #39483B
+- Deep charcoal text: #22221F
+- Muted sage: #A6AD99
+- Pale sage surfaces: #E3E8DD
+- Warm taupe: #9B846C
+- White: #FFFFFF
+- Muted secondary text: #77766E
+- Restrained terracotta accent: #C47D61
+
+Use forest green for primary buttons and key interactive elements. Use ivory and white for most surfaces. Use sage for subtle highlights, and terracotta only for occasional emphasis.
+
+Avoid a generic purple-and-blue AI dashboard aesthetic, excessive gradients, excessive glassmorphism, and saturated colors everywhere.
+
+Gradients are allowed sparingly in the hero section or behind the mascot, but the overall application should remain sophisticated and readable.
+
+## Typography
+
+Use:
+- DM Sans or Inter for body text, controls, navigation, and dashboard UI.
+- A tasteful editorial serif such as DM Serif Display or Cormorant Garamond for selected hero headings.
+
+Use a clear typography hierarchy. Make body text comfortable on ordinary laptop screens, with readable labels, appropriately sized headings, and restrained line lengths.
+
+## Layout
+
+Use generous spacing, clear alignment, consistent border radii, and a restrained shadow system.
+
+Prefer:
+- Rounded cards with subtle borders.
+- Asymmetric editorial layouts on marketing sections.
+- Clean grids and deliberate whitespace.
+- Small, carefully placed mascot illustrations.
+- Strong contrast between headings, supporting text, and actions.
+
+Avoid oversized dashboard text, cramped cards, unnecessary blank space, excessive rounded pills, and layouts that force users to scroll horizontally.
+
+Create a reusable design system rather than styling every component independently.
+
+---
+
+# 3. MOTION DESIGN — A MAJOR PRIORITY
+
+The reference website https://techclubbst.vercel.app/ is a visual inspiration for ambitious motion design, scrolling experiences, and interactive presentation.
+
+Inspect the reference if accessible. Use its general level of polish and motion ambition as inspiration, but do not copy its branding, content, or exact layouts.
+
+The goal is to make SlothDesk feel like a professionally designed, interactive product with movement throughout the journey—not simply a static site with a few fade-ins.
+
+## A. Cinematic landing-page opening
+
+Create a full-viewport hero section featuring:
+
+- SlothDesk AI branding.
+- A strong headline with carefully animated text.
+- A concise explanation of the product.
+- A prominent “Get Started” CTA.
+- A secondary “Explore Features” action.
+- An adorable animated sloth relaxing on a branch or hammock.
+- Small floating leaves, soft ambient shapes, and subtle depth.
+- A scroll indicator that invites the user to explore.
+
+Use smooth entrance choreography: headline, supporting text, buttons, then mascot and background elements.
+
+The animation should feel elegant and deliberate, not like everything is bouncing simultaneously.
+
+## B. Scroll-driven storytelling
+
+Make scrolling a central part of the landing-page experience.
+
+Implement the following sections with coordinated motion:
+
+1. **Hero:** The mascot and headline enter with a polished cinematic reveal.
+2. **The problem:** Messy notes, scattered tasks, and overwhelming lists appear as floating cards.
+3. **The transformation:** Cards visually reorganize into a clean, prioritized task list as the user scrolls.
+4. **Low-Energy Mode:** The sloth relaxes in a hammock while the interface simplifies into a manageable plan.
+5. **AI Toolkit:** Feature cards enter in a staggered sequence, with restrained hover interactions.
+6. **Daily planning:** A sample schedule builds progressively as the user scrolls.
+7. **Sloth Garden:** Completed tasks produce leaves that gradually populate a small tree.
+8. **AI transparency:** Show the model and privacy principles in a clean technical section.
+9. **Final CTA:** The sloth waves or peeks into view beside a clear invitation to start.
+
+Where appropriate, use sticky storytelling sections in which a visual stays in place while the associated content changes during scrolling.
+
+Use scroll progress to drive animation only when it adds meaning. Avoid scroll hijacking, forced pauses, and animations that prevent the user from reading.
+
+## C. Premium interaction details
+
+Implement:
+- Staggered card entrances.
+- Smooth section transitions.
+- Subtle parallax for background illustrations.
+- Animated section headings.
+- Underline and icon transitions on navigation links.
+- Buttons with tasteful hover, pressed, and loading states.
+- Cards that lift slightly on hover.
+- Smooth navigation to page sections.
+- Animated progress indicators.
+- A subtle custom cursor treatment only if it remains accessible and does not replace the normal cursor.
+- Smooth route transitions where compatible with the framework.
+- A responsive mobile version of all motion effects.
+
+Animations should feel fluid and intentional. Do not animate every object continuously.
+
+## D. Animation performance
+
+Use CSS transforms and opacity wherever possible. Avoid expensive layout-changing animations and excessive blur effects.
+
+Use IntersectionObserver for reveal-on-scroll effects where appropriate. If the existing framework already has a suitable motion library, use it consistently. Otherwise, prefer lightweight CSS and native browser capabilities.
+
+If adding Framer Motion or another library, verify compatibility with the current React and framework versions before installing it.
+
+Do not make the entire application depend on a heavy animation library unnecessarily.
+
+Honor `prefers-reduced-motion`. Users who prefer reduced motion must still be able to access every feature and understand every section.
+
+Do not require WebGL, an external animation server, or a paid motion service.
+
+---
+
+# 4. THE SLOTH MASCOT SYSTEM
+
+Create one consistent, original sloth mascot design and reuse it across the application.
+
+The mascot should be cute, small, recognizable, and visually consistent. Prefer clean vector illustrations, lightweight SVG artwork, CSS animation, or optimized Lottie assets if available.
+
+Do not depend on remote images that might disappear. If artwork is generated, store the required assets within the project where licensing and build compatibility allow.
+
+Create these mascot states:
+
+1. **Idle Sloth:** Gently sways, blinks, and hangs from a branch.
+2. **Thinking Sloth:** Looks thoughtful while the AI processes a request.
+3. **Low-Energy Sloth:** Relaxes in a hammock.
+4. **Task-Completed Sloth:** Gives a tiny thumbs-up or celebrates with falling leaves.
+5. **Encouragement Sloth:** Peeks out beside helpful, non-judgmental messages.
+6. **Empty-State Sloth:** Holds a small notebook or points toward the first action.
+7. **Error-State Sloth:** Looks mildly confused beside a clear explanation and retry button.
+8. **Garden Sloth:** Appears next to the user's growing progress tree.
+
+Use the same underlying character, colors, and illustration style for every state.
+
+Keep mascot animations short and subtle outside the landing page. Avoid blocking buttons, covering text, or distracting users while they work.
+
+---
+
+# 5. LANDING PAGE — COMPLETE STRUCTURE
+
+Build the following page from top to bottom.
+
+## Section 1: Navigation
+
+Left:
+- SlothDesk AI logo, combining a minimalist sloth or leaf mark with the product name.
+
+Center or right:
+- Features
+- How It Works
+- AI & Privacy
+- About
+
+Right:
+- “Open Workspace” button.
+
+Use a transparent navigation bar over the hero that transitions to a subtle ivory surface as the user scrolls.
+
+On mobile, use an accessible menu with smooth opening and closing.
+
+## Section 2: Hero
+
+Suggested headline:
+
+“Your day, without the chaos.”
+
+Supporting copy:
+
+“Turn scattered thoughts into simple plans, break big tasks into tiny steps, and let your AI sloth handle the organizing.”
+
+Primary CTA: “Get Started”
+
+Secondary CTA: “See How It Works”
+
+Show the mascot lounging beside a visually appealing preview of the application.
+
+Include small floating task cards that subtly animate into an organized stack.
+
+Do not overload the hero with text, badges, or buttons.
+
+## Section 3: Problem-to-solution transformation
+
+Show three common problems:
+- Too many tasks.
+- Too much information.
+- Not enough mental energy.
+
+Animate these into three solutions:
+- Organized priorities.
+- Clear action items.
+- Smaller, manageable steps.
+
+Use a scroll-triggered transition to demonstrate the transformation visually.
+
+## Section 4: Feature showcase
+
+Create large, interactive feature cards for:
+- Lazy Task Organizer.
+- Low-Energy Mode.
+- Make It Smaller.
+- Note-to-Action Converter.
+- Slow Planner.
+- Sloth Garden.
+
+Each card must have a concise description, a unique icon, a small mascot illustration where appropriate, and a working action that opens the corresponding feature or workspace.
+
+## Section 5: How It Works
+
+Show a clear three-step workflow:
+
+1. Drop in your messy notes or tasks.
+2. Let AI organize and simplify them.
+3. Review, adjust, and follow your plan.
+
+Animate the workflow progressively as the section enters the viewport.
+
+## Section 6: Sloth Garden preview
+
+Show a small illustrated tree that grows gradually as the user completes tasks.
+
+Explain that completed tasks earn leaves. Include a small preview of how progress appears in the actual application.
+
+Do not use punitive streak mechanics, guilt-inducing messages, or misleading productivity scores.
+
+## Section 7: Open AI and privacy
+
+Explain:
+- Which model powers the application.
+- What AI processes.
+- Whether data is sent to a remote inference provider.
+- Which features work without an AI connection.
+- How users can delete their data.
+
+Never claim that processing is local or private by design unless the implementation actually supports that claim.
+
+## Section 8: Final CTA and footer
+
+Headline: “Ready to make room for a calmer day?”
+
+CTA: “Enter SlothDesk”
+
+Footer links:
+- Features.
+- How It Works.
+- AI & Privacy.
+- About.
+- GitHub repository, once available.
+- Contact or feedback.
+
+Keep the footer elegant and compact.
+
+---
+
+# 6. REAL APPLICATION — WORKSPACE
+
+The landing page must lead to a functional workspace. Do not stop after implementing the marketing website.
+
+Create a responsive desktop application shell with a collapsible sidebar, a clean top bar, and a main content area.
+
+## Sidebar navigation
+
+Use consistent Lucide icons:
+- Overview: `layout-dashboard`
+- My Tasks: `check-square`
+- AI Toolkit: `sparkles`
+- Slow Planner: `calendar-days`
+- Notes & Summaries: `notebook-pen`
+- Sloth Garden: `trees`
+- Activity History: `history`
+- Settings: `settings`
+
+Use the correct available icon names and ensure the application builds successfully.
+
+Highlight the current page clearly. On narrow screens, collapse the sidebar into an accessible drawer or compact navigation.
+
+## Dashboard header
+
+Display:
+- Personalized greeting.
+- Current date.
+- Quick-add task control.
+- Search.
+- User profile or guest indicator.
+- AI connection status.
+
+Example greeting:
+
+“Good morning. Let's make today a little easier.”
+
+Include a small, relaxed sloth illustration near the greeting.
+
+## Dashboard content
+
+Build these components:
+
+### A. Today's overview
+
+Show:
+- Open tasks.
+- Completed tasks.
+- High-priority tasks.
+- Planned focus time.
+
+Calculate these values from real application state. Do not hardcode dashboard metrics.
+
+### B. Quick-add task
+
+Provide a text input and an Add Task button.
+
+Allow users to:
+- Create tasks.
+- Edit task titles.
+- Add descriptions.
+- Set due dates.
+- Select priority.
+- Mark tasks complete.
+- Delete tasks with confirmation or undo.
+- Filter and search tasks.
+
+### C. Today's priorities
+
+Show a prioritized list with:
+- Task title.
+- Priority.
+- Due date, if applicable.
+- Completion checkbox.
+- Estimated duration, when available.
+- Expandable details.
+- A way to simplify the task with AI.
+
+### D. AI quick actions
+
+Display prominent cards for:
+- Organize My Mess.
+- Make It Smaller.
+- Summarize Notes.
+- Plan My Day.
+
+Every card must open a functional tool, not an inert modal or decorative button.
+
+### E. Sloth companion
+
+Include a small mascot panel with:
+- Current sloth state.
+- One short contextual message.
+- A shortcut to the next recommended action.
+- A dismissible encouragement message.
+
+Messages should be generated from the user's actual state or selected from an appropriate set of messages. Never imply that the sloth knows private information that the user has not provided.
+
+---
+
+# 7. CORE AI FEATURES
+
+These features define the product. Implement their workflows before adding minor extras.
+
+## Feature A: Lazy Task Organizer
+
+Create an input area where the user can paste messy thoughts, for example:
+
+“Finish the assignment, email my professor, prepare the slides, buy a notebook, and revise the next chapter.”
+
+Allow the user to submit the text to the configured AI model.
+
+Return structured tasks containing:
+- Task title.
+- Brief description.
+- Suggested priority.
+- Estimated duration, when reasonably inferable.
+- Dependencies, when supported by the input.
+- Optional due date only when explicitly provided or clearly identified as an assumption.
+
+Display the generated tasks as editable cards.
+
+Provide:
+- Add selected tasks.
+- Edit before saving.
+- Regenerate.
+- Copy.
+- Cancel.
+
+Do not invent deadlines, completed actions, or project requirements.
+
+If the AI response is malformed, show a recoverable error and preserve the user's original input.
+
+## Feature B: Low-Energy Mode
+
+Let users select:
+- Low energy.
+- Normal energy.
+- High energy.
+
+Also allow them to specify available time.
+
+Create a realistic plan based on existing tasks, deadlines, and user preferences.
+
+For Low Energy:
+- Identify the most important manageable task.
+- Suggest one or two optional tasks.
+- Identify what can be postponed.
+- Break the selected task into smaller steps.
+- Explain why the task was prioritized.
+
+Never assume the user is lazy or unmotivated. Use supportive language.
+
+Provide buttons to accept the plan, edit it, or regenerate it.
+
+## Feature C: Make It Smaller
+
+Allow users to select any task and request a breakdown into simple, actionable steps.
+
+Each step should:
+- Start with a concrete action.
+- Be understandable without additional explanation.
+- Be small enough to begin immediately.
+- Have a duration estimate only when reasonable.
+
+Allow the user to:
+- Expand or collapse the steps.
+- Edit them.
+- Mark steps complete.
+- Add them to the task list.
+- Simplify a step further.
+
+Preserve the original task and avoid creating duplicate steps when regenerating.
+
+## Feature D: Note-to-Action Converter
+
+Provide a text area for notes, meeting summaries, lecture notes, or other user-provided text.
+
+Generate:
+- A concise summary.
+- Key points.
+- Action items.
+- Important dates explicitly mentioned.
+- Open questions.
+- Uncertain or ambiguous information.
+
+Allow action items to be converted into tasks.
+
+When extracting dates or requirements, distinguish explicit source information from AI interpretation. Do not fabricate citations or claim a statement came from a source unless it can be traced to the provided text.
+
+## Feature E: Slow Planner
+
+Build a daily planner with editable time blocks.
+
+Users can:
+- Select a date.
+- Select available time.
+- Choose tasks.
+- Set breaks.
+- Rearrange tasks.
+- Change estimated durations.
+- Reschedule unfinished tasks.
+- Save the plan.
+
+If AI scheduling is enabled, let the model suggest a schedule based on the user's actual constraints.
+
+Prevent overlapping scheduled blocks unless explicitly allowed.
+
+Do not claim calendar synchronization unless a real calendar integration has been implemented.
+
+## Feature F: Sloth Garden
+
+Build a small illustrated garden or tree.
+
+When users complete tasks:
+- Add a leaf to the garden.
+- Update the progress display.
+- Trigger a brief celebration animation.
+- Show a gentle success message.
+
+Persist progress across reloads using the selected storage mechanism.
+
+Provide a reset option and avoid manipulative streaks or pressure-based mechanics.
+
+## Feature G: Activity History
+
+Track user-visible application events such as:
+- Task created.
+- Task completed.
+- Task edited.
+- AI output saved.
+- Daily plan updated.
+
+Allow users to filter history by date and event type.
+
+Do not log API keys, passwords, unnecessary personal information, or raw sensitive content.
+
+## Feature H: Search and filtering
+
+Support:
+- Search by task title.
+- Filter by priority.
+- Filter by status.
+- Filter by date.
+- Sort by due date or priority.
+
+All filters must operate on actual task data.
+
+---
+
+# 8. AI MODEL AND OPEN-WEIGHT REQUIREMENTS
+
+The application must use a real, configured AI model for its advertised AI capabilities.
+
+Prefer an appropriate open-weight model, such as a supported Gemma variant, or another suitable model compatible with the chosen inference provider and the challenge's requirements.
+
+Do not assume that building in Google AI Studio automatically means the deployed application uses open-weight AI.
+
+Before implementation:
+
+1. Inspect the existing model integration.
+2. Identify the actual model provider and model identifier.
+3. Determine whether inference runs remotely or locally.
+4. Verify that the model and runtime support the required structured output.
+5. Use the smallest viable integration that can be deployed reliably.
+
+If no working inference integration exists, create a clean provider abstraction and explain the minimum required configuration.
+
+Do not invent credentials, use fake model responses, or silently switch to a different model without informing the user.
+
+## AI quality requirements
+
+- Use the actual user input as context.
+- Make responses specific and useful.
+- Generate meaningfully different outputs for different requests.
+- Avoid repeating generic boilerplate.
+- Maintain consistent output schemas.
+- Validate structured responses before updating application state.
+- Use controlled variation where supported.
+- Never sacrifice correctness just to create variety.
+- Preserve original inputs if generation fails.
+- Provide clear loading, success, empty, and error states.
+
+Do not use random sentence shuffling or a fixed set of fake answers as a substitute for model inference.
+
+If live AI is unavailable, offer a clearly labelled demo mode using realistic sample data. The interface must distinguish demo output from genuine AI output.
+
+## AI transparency
+
+Display:
+- Actual configured model name.
+- Connection status.
+- Whether a response came from live AI or demo mode.
+- A useful error message if inference fails.
+
+Never claim a model is local, open-source, or running successfully unless the implementation supports that statement.
+
+---
+
+# 9. LOGIN, GUEST MODE, SETTINGS, AND DATA
+
+## Guest mode
+
+Allow users to try the product without mandatory authentication.
+
+On the first visit, offer:
+- Try the Demo.
+- Open Workspace.
+- Optional account sign-in, only if implemented.
+
+Guest mode must support real interactions, including task creation, editing, completion, and AI-tool access when configured.
+
+## Persistence
+
+Choose the simplest reliable storage architecture that matches the project.
+
+For an initial single-user prototype, browser storage may be sufficient for non-sensitive task data.
+
+If the project requires cross-device synchronization or user accounts, use a real backend with appropriate authentication and access controls.
+
+Do not expose database credentials or private API keys in frontend code.
+
+Explain the limitations of browser-only storage. Do not promise synchronization or backup unless implemented.
+
+## Settings
+
+Include:
+- Theme preference.
+- Reduced-motion preference.
+- Language preference.
+- Default energy level.
+- Task display preferences.
+- AI connection information.
+- Data export.
+- Clear saved data.
+- Privacy explanation.
+
+Do not add fake account settings, fake integrations, or nonfunctional controls.
+
+---
+
+# 10. VERCEL-FRIENDLY TECHNICAL ARCHITECTURE
+
+This requirement is mandatory.
+
+First inspect the existing project's framework and preserve it where possible.
+
+## Frontend
+
+- Use the existing supported React/TypeScript setup if available.
+- Build reusable components and clear page boundaries.
+- Keep state management simple and predictable.
+- Use a responsive layout.
+- Optimize images and mascot assets.
+- Avoid unnecessary dependencies.
+- Ensure every route works after refresh.
+- Keep secrets out of client-side code.
+
+## Backend and inference
+
+If server-side AI inference is required, use a supported Vercel-compatible serverless route or the existing project's compatible backend.
+
+The frontend must call a valid application endpoint rather than a Google AI Studio preview-only endpoint.
+
+Use only the environment variables actually required by the chosen provider.
+
+Validate all incoming requests and enforce reasonable input-size limits.
+
+Check HTTP status codes and response content types before parsing JSON.
+
+Handle:
+- Missing environment variables.
+- Invalid credentials.
+- Rate limits.
+- Provider outages.
+- Network failures.
+- Invalid JSON.
+- Unexpected response formats.
+- Timeouts.
+
+Return consistent, sanitized error responses. Never expose API keys, stack traces, or internal secrets in browser errors.
+
+Do not parse arbitrary HTML or plain-text error pages as JSON without checking the response.
+
+Never claim that a production API route works until it has been tested.
+
+## Free-tier constraints
+
+Keep the architecture compatible with Vercel Hobby's current limits.
+
+Avoid:
+- Persistent background servers.
+- Long-running processes that require a continuously running backend.
+- Unnecessary database services.
+- Expensive external APIs.
+- Large mandatory downloads.
+- Heavy client-side model inference that makes the site unusable.
+
+Do not promise unlimited free AI inference. Explain any required provider configuration and current usage limitations.
+
+If an open-weight model cannot be hosted reliably within the free deployment setup, use a compatible external inference service with transparent setup requirements or clearly labelled demo mode until inference is configured.
+
+---
+
+# 11. RESPONSIVE DESIGN AND ACCESSIBILITY
+
+The application must work on:
+- Standard laptop screens.
+- Larger desktop displays.
+- Tablets.
+- Mobile phones.
+
+Requirements:
+- No horizontal overflow.
+- No clipped headings.
+- No unreadable text.
+- Touch-friendly buttons.
+- Accessible form labels.
+- Keyboard navigation.
+- Visible focus states.
+- Appropriate semantic HTML.
+- Sufficient color contrast.
+- Accessible modal behavior.
+- Screen-reader labels for icon-only controls.
+- Reduced-motion support.
+
+Ensure the sidebar, cards, forms, and animation sequences adapt properly to smaller screens.
+
+Never let scroll-driven effects make essential information inaccessible on mobile.
+
+---
+
+# 12. FUNCTIONALITY RULES
+
+Every visible button, link, card action, toggle, and form submission must have a real purpose.
+
+Implement:
+- Form validation.
+- Loading states.
+- Error messages.
+- Success feedback.
+- Empty states.
+- Confirmation for destructive actions.
+- Undo where practical.
+- State persistence.
+- Proper navigation.
+- Responsive menus.
+- Working theme and motion preferences.
+
+Do not create placeholder buttons that appear functional but do nothing.
+
+Do not populate the app with invented user statistics presented as real data.
+
+Do not allow animation to prevent users from clicking, scrolling, reading, or completing tasks.
+
+Do not rewrite working components unnecessarily. Avoid duplicate libraries and duplicate functionality.
+
+---
+
+# 13. DEVELOPMENT AND VERIFICATION PLAN
+
+Implement the project in a sensible order.
+
+### Phase 1 — Foundation
+- Inspect the current codebase.
+- Establish the design tokens.
+- Build the layout and navigation.
+- Create the sloth mascot system.
+- Implement the landing page and responsive behavior.
+
+### Phase 2 — Motion
+- Implement scroll-driven storytelling.
+- Add staggered reveals and parallax.
+- Add mascot state animations.
+- Optimize motion and reduced-motion behavior.
+
+### Phase 3 — Workspace
+- Build the dashboard.
+- Implement task creation and management.
+- Implement guest mode and persistence.
+- Add search, filtering, and activity history.
+
+### Phase 4 — AI
+- Implement Lazy Task Organizer.
+- Implement Low-Energy Mode.
+- Implement Make It Smaller.
+- Implement Note-to-Action Converter.
+- Implement Slow Planner.
+- Validate model responses and preserve user input on failure.
+
+### Phase 5 — Differentiation
+- Implement Sloth Garden.
+- Add the contextual mascot messages.
+- Add AI transparency and privacy settings.
+- Add polished empty states and delightful micro-interactions.
+
+### Phase 6 — Deployment readiness
+- Inspect routes and production configuration.
+- Run available build, lint, and type checks.
+- Resolve errors caused by the changes.
+- Verify mobile layout and navigation.
+- Test missing AI configuration and failed inference.
+- Test persistence and task operations.
+- Check that no secrets are exposed in client bundles.
+- Confirm Vercel deployment compatibility.
+
+Do not claim a test passed unless it was actually executed and passed. Clearly report anything that requires credentials or external configuration.
+
+---
+
+# 14. ACCEPTANCE CRITERIA
+
+The completed application must satisfy all of these:
+
+1. The landing page feels premium and contains a distinctive sloth identity.
+2. Scroll-driven animations are smooth, meaningful, and responsive.
+3. The application dashboard works independently of the marketing page.
+4. Users can create, edit, complete, filter, and save tasks.
+5. Every core AI feature has a coherent input-to-output workflow.
+6. Model output is validated before being saved.
+7. Demo mode is explicitly labelled and never impersonates real AI.
+8. The sloth reacts appropriately to idle, thinking, low-energy, and completion states.
+9. The garden updates based on actual completed tasks.
+10. The application is usable on mobile and standard laptops.
+11. No critical control is decorative or broken.
+12. Secrets remain server-side.
+13. AI failure produces a useful error instead of an unexplained JSON parsing error.
+14. The codebase remains compatible with Vercel deployment.
+15. The open-weight model and inference architecture are documented honestly.
+16. The app is fast, accessible, and usable with reduced motion.
+17. Existing working features are preserved unless an explicit replacement is necessary.
+
+# FINAL INSTRUCTION
+
+Build this as a cohesive, high-quality product, not a collection of disconnected sections.
+
+Prioritize an exceptional visual identity, meaningful scroll-driven motion, a lovable and consistent sloth mascot, and working core workflows.
+
+The final experience should feel like a product someone could genuinely use, demonstrate at a hackathon, and continue developing as an open-source project.
+
+Start by inspecting the existing project and then implement the changes directly. Do not merely return a plan or explain how to build it. Preserve the project's existing working behavior, use only necessary dependencies, and report the actual implementation and any remaining setup requirements honestly.
