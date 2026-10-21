@@ -7,7 +7,8 @@
 
 **SlothDesk AI** is an AI-powered productivity companion designed to turn overwhelming tasks into manageable steps. From organizing messy thoughts to creating realistic daily plans, it helps you stay productive without the pressure.
 
-🌐 **Live Demo:** https://slothdeskai.ai.studio  
+🌐 **Live Demo:** https://slothdeskai.ai.studio 
+
 💻 **Repository:** https://github.com/veryVanshika801/SlothDeskAI
 
 ---
