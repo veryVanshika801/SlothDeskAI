@@ -6,6 +6,7 @@ import { Sparkles, Check, Plus, Clock, Scissors, RotateCcw, Copy, Layers } from 
 
 interface MakeItSmallerViewProps {
   tasks: Task[];
+  initialTaskTitle?: string;
   onAddSubtasks: (taskId: string, subtasks: Subtask[]) => void;
   onAddStandaloneTasks?: (tasks: Task[]) => void;
   onOpenTaskTab: () => void;
@@ -13,14 +14,15 @@ interface MakeItSmallerViewProps {
 
 export const MakeItSmallerView: React.FC<MakeItSmallerViewProps> = ({
   tasks,
+  initialTaskTitle,
   onAddSubtasks,
   onAddStandaloneTasks,
   onOpenTaskTab,
 }) => {
   const [selectedTaskId, setSelectedTaskId] = useState<string>(
-    tasks[0]?.id || 'custom'
+    initialTaskTitle ? 'custom' : tasks[0]?.id || 'custom'
   );
-  const [customTitle, setCustomTitle] = useState('');
+  const [customTitle, setCustomTitle] = useState(initialTaskTitle || '');
   const [customDesc, setCustomDesc] = useState('');
   const [desiredStepCount, setDesiredStepCount] = useState<number>(4);
   const [isLoading, setIsLoading] = useState(false);

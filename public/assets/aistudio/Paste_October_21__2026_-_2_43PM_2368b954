@@ -1,0 +1,545 @@
+# SlothDesk AI — Complete Feature Upgrade, Functionality Audit & Production-Ready Fix
+
+Act as a senior full-stack developer, AI engineer, UI/UX designer, and QA engineer. Upgrade my EXISTING SlothDesk AI project into a polished, fully functional, reliable, Vercel-ready productivity application.
+
+**Project identity:** SlothDesk AI  
+**Live prototype:** https://slothdeskai.ai.studio  
+**GitHub repository:** https://github.com/veryVanshika801/SlothDeskAI
+
+## MOST IMPORTANT INSTRUCTIONS
+
+1. Inspect the entire existing project before making changes. Understand the current architecture, framework, dependencies, AI integration, routing, state management, storage, and deployment configuration.
+2. Modify the existing codebase directly. Do not merely give me suggestions, example code, a checklist, or a new design mockup.
+3. Preserve the existing SlothDesk AI identity, working features, visual style, and useful user data. Do not unnecessarily rewrite working components or remove existing functionality.
+4. Implement the new features described below and connect them to real application logic.
+5. Audit and fix EVERY button, icon, navigation item, dropdown, form, card action, AI generation, and interactive element.
+6. Fix the actual root causes of bugs instead of hiding them with visual workarounds.
+7. Keep the project compatible with a fresh GitHub clone, a production build, and deployment on Vercel.
+8. Do not claim that something works unless it has actually been implemented and tested. If a feature needs an API key or external service, explain that requirement and handle its absence gracefully.
+9. Do not stop after creating the frontend. Connect the UI, state, storage, and backend/API logic wherever necessary.
+10. Do not replace the project with a generic dashboard template. The final application must retain its distinctive, cozy, sloth-inspired personality.
+
+# PART 1 — FULL EXISTING PROJECT AUDIT
+
+Before editing, inspect all relevant source files, components, dependencies, API routes, environment variable usage, build scripts, and Vercel configuration.
+
+Create an internal checklist of existing features and their expected behavior. Then fix the following issues wherever they exist:
+
+- Broken or non-functional buttons and icons.
+- Buttons that look interactive but do nothing.
+- Incorrect or missing click handlers.
+- Incorrect event propagation or nested clickable elements.
+- Navigation links that lead nowhere.
+- Forms that accept invalid data or fail to submit.
+- AI tools that generate identical, irrelevant, incomplete, or generic outputs.
+- Errors silently swallowed by catch blocks.
+- Loading states that never finish.
+- Mock responses presented as genuine AI-generated results.
+- Missing persistence or data disappearing after refresh.
+- Incorrect task completion, garden reward, or progress calculations.
+- Duplicate rewards or duplicate task creation.
+- Unsafe browser storage operations.
+- Export and import bugs.
+- Mobile layout issues, overflow, and inaccessible controls.
+- Broken direct navigation or page refresh on Vercel.
+- Environment variables or API routes that work only in Google AI Studio but fail in deployment.
+- Missing error messages, empty states, or success feedback.
+- Outdated or unused code, conflicting dependencies, and unnecessary complexity.
+
+Inspect the actual implementation before deciding which issues apply. Do not introduce unnecessary duplicate features.
+
+# PART 2 — ADD SLOTH RESCUE MODE
+
+Build a complete feature called **Sloth Rescue Mode — “Let's get you unstuck.”**
+
+Purpose: help users who feel overwhelmed turn their current situation into one manageable next action.
+
+### User flow
+
+1. Add a clearly visible “Help me get unstuck” action to the dashboard and relevant empty or overwhelmed states.
+2. Open a friendly, responsive panel or page with a text area asking what feels difficult right now.
+3. Offer optional quick choices such as:
+   - Too many tasks.
+   - Don't know where to start.
+   - Low energy.
+   - Procrastinating.
+   - Need help breaking something down.
+4. Allow the user to submit their own situation.
+5. Generate a contextual response using the configured AI provider when available.
+6. Return:
+   - A short, empathetic acknowledgement.
+   - One recommended first action.
+   - Two or three small, optional follow-up steps.
+   - A realistic suggested duration.
+   - An optional “Make it even smaller” action.
+7. Provide working buttons:
+   - Start this task.
+   - Add to my tasks.
+   - Make it smaller.
+   - Try another suggestion.
+   - Edit my input.
+   - Close.
+
+Every action must work. “Try another suggestion” must produce a genuinely different, relevant suggestion instead of returning the same fixed response.
+
+Do not shame users, diagnose them, or promise that productivity will solve every problem. Keep the tone gentle, practical, and non-judgmental.
+
+# PART 3 — ENERGY-BASED DAILY PLANNER
+
+Add a working energy selector with three levels:
+
+- Low Energy.
+- Medium Energy.
+- High Energy.
+
+Allow users to change their energy level at any time.
+
+### Expected behavior
+
+**Low Energy**
+- Prioritize essential tasks.
+- Suggest smaller actions and shorter sessions.
+- Reduce the suggested workload.
+- Allow optional tasks to be deferred.
+
+**Medium Energy**
+- Balance essential work with manageable secondary tasks.
+- Break larger tasks into reasonable steps.
+
+**High Energy**
+- Allow longer focus sessions and more demanding tasks.
+- Still respect deadlines, available time, and the user's priorities.
+
+### Planner requirements
+
+- Use actual saved tasks and user-selected priorities.
+- Respect due dates, task durations, and available time where provided.
+- Never invent deadlines or mark tasks complete automatically.
+- Clearly label AI-generated suggestions as suggestions.
+- Let users accept, edit, reject, or regenerate a plan.
+- Add accepted tasks or schedules to the actual task system.
+- Prevent duplicate task creation when the user repeatedly clicks an action.
+- Provide useful defaults if the user has not supplied enough information.
+- Never overload the user simply because they select High Energy.
+
+Persist the energy preference safely when appropriate, and explain how to change it.
+
+# PART 4 — GENTLE FOCUS SESSIONS
+
+Create a fully functional, distraction-free focus experience.
+
+### Features
+
+- Session presets: 5, 10, and 25 minutes.
+- Custom duration if practical.
+- Select an existing task or create a small task.
+- Display the active task, remaining time, and session progress.
+- Start, pause, resume, finish early, and cancel controls.
+- A gentle break suggestion after a completed session.
+- Encouraging messages and changing sloth expressions.
+- A clear completion state with options to return to the dashboard or start another session.
+
+### Technical requirements
+
+- The timer must actually count down.
+- Avoid creating duplicate intervals when starting or resuming.
+- Handle pausing, resuming, cancellation, and component unmounting correctly.
+- Prevent the timer from drifting badly when a tab is inactive; use an appropriate time-based calculation rather than relying only on repeated interval decrements.
+- If a page refresh occurs, restore or gracefully end the session according to a clearly defined policy.
+- Never mark the associated task complete just because a focus session ends.
+- Only record a completed focus session when it actually reaches its intended completion state.
+- Do not force users to use a particular session duration.
+
+Keep the interface calm, accessible, and usable on mobile.
+
+# PART 5 — PROGRESS WITHOUT GUILT & SLOTH GARDEN
+
+Improve the existing Sloth Garden instead of replacing it.
+
+### Expected behavior
+
+- Completing meaningful tasks or focus sessions can unlock garden growth.
+- Use clear, understandable reward rules.
+- Avoid rewarding duplicate events multiple times.
+- Reopening and completing the same task must not repeatedly generate the same one-time reward unless the product explicitly supports repeatable rewards.
+- Handle undo and task reopening without corrupting reward history.
+- Provide a useful garden empty state for new users.
+- Add subtle visual growth stages, plants, leaves, and sloth animations.
+- Make milestones meaningful and explain how they are earned.
+- Make the garden reflect real recorded progress, not fabricated statistics.
+
+Add a **Progress Without Guilt** experience:
+- Let users reschedule unfinished tasks.
+- Offer a gentle daily reset.
+- Highlight small wins.
+- Allow users to skip or dismiss suggestions.
+- Never use guilt-based messages, punishing streaks, or misleading progress metrics.
+
+Make the garden and progress indicators update immediately and remain consistent after refreshing the page.
+
+# PART 6 — WEEKLY SLOTH REFLECTION
+
+Create a Weekly Sloth Reflection feature based on real user data.
+
+Display:
+- Tasks completed during the selected week.
+- Tasks still pending or rescheduled.
+- Focus sessions completed and their total recorded duration.
+- Small wins or milestones.
+- Optional user-written reflection.
+- A suggested focus for the coming week.
+
+### Requirements
+
+- Use actual persisted data and a clearly defined week boundary.
+- Handle weeks with no activity gracefully.
+- Do not invent productivity scores, completed tasks, or personal insights.
+- Clearly distinguish calculated statistics from AI-generated reflections.
+- If AI is unavailable, still display accurate basic statistics.
+- Let users edit or delete their personal reflection.
+- Allow users to generate another reflection when AI is available.
+- Provide an option to create next week's plan from accepted suggestions.
+- Make the reflection optional and avoid intrusive pop-ups.
+
+# PART 7 — QUICK CAPTURE & SMART RESCHEDULING
+
+Improve the daily workflow with two lightweight capabilities.
+
+### Quick Capture
+
+- Provide a fast way to capture a thought, note, or task from the dashboard.
+- Support keyboard-friendly submission.
+- Allow users to convert a captured note into a task later.
+- Preserve the original note when converting it.
+- Validate empty submissions.
+- Prevent accidental duplicate creation.
+- Provide clear saved, error, and retry feedback.
+
+### Smart Rescheduling
+
+- Identify overdue or unfinished tasks using real task data.
+- Suggest realistic alternative dates or smaller steps.
+- Respect existing deadlines and user-provided availability.
+- Never silently change a deadline or move a task without confirmation.
+- Let users accept, edit, reject, or regenerate suggestions.
+- Clearly distinguish a suggestion from a saved schedule.
+- Handle conflicting deadlines and insufficient scheduling information gracefully.
+
+# PART 8 — MAKE EVERY AI GENERATION WORK CORRECTLY
+
+This is one of the highest-priority parts of the task.
+
+Find every existing AI-powered feature, including all variants of:
+- Lazy Task Organizer.
+- Low-Energy Mode.
+- Make It Smaller.
+- Note-to-Action Converter.
+- Slow Planner.
+- Sloth Rescue Mode.
+- Weekly Sloth Reflection.
+- Any existing AI writing, task breakdown, planning, or regeneration feature.
+
+Do not assume the names above exactly match the current source code. Discover and audit the actual features present in the project.
+
+### A. Verify real AI integration
+
+- Trace each generation button to its actual implementation and API request.
+- Verify that the intended configured provider and model are used.
+- Do not falsely label a hosted proprietary model as open-weight.
+- If the app claims to use an open-weight model, verify the actual model identity and provider documentation.
+- Do not invent model names, API endpoints, capabilities, or successful responses.
+- Do not expose API keys in frontend bundles, browser storage, logs, or public repository files.
+- Never commit real secrets to GitHub.
+- Keep all server-only credentials in environment variables.
+
+If AI is unavailable, display a clear, friendly explanation and an actionable retry or configuration message. Do not silently present a hard-coded fallback as real AI.
+
+### B. Make outputs genuinely contextual and different
+
+Every AI tool must have its own purpose, prompt, input validation, expected output structure, and response presentation.
+
+For example:
+- Task Organizer should organize the actual supplied tasks.
+- Low-Energy Mode should reduce workload and task size.
+- Make It Smaller should break down the selected task into a more manageable action.
+- Note-to-Action should extract actionable tasks from the user's note.
+- Slow Planner should build a realistic plan from actual priorities and time constraints.
+- Sloth Rescue should recommend a single useful starting action.
+- Weekly Reflection should summarize recorded activity and optionally suggest next steps.
+
+Do not return the same generic paragraph for different tools.
+
+For repeated generation requests:
+- Use the user's actual input.
+- Include relevant task context.
+- Change the generation approach when the user selects “Try another” or “Regenerate.”
+- Avoid simply appending random words or changing the title to create fake variation.
+- Avoid randomness that makes results irrelevant or contradictory.
+- Allow the user to edit generated content before saving it.
+
+### C. Validate generated responses
+
+Where appropriate, use structured output and validate it before displaying or saving it.
+
+For generated tasks, validate:
+- Title.
+- Description or next action.
+- Estimated duration when requested.
+- Priority when requested.
+- Due date only when supported by the input.
+- Any subtasks or dependencies.
+
+For plans, validate the schedule, total time, task order, and constraints. Reject or repair malformed responses rather than crashing.
+
+Do not blindly trust generated dates, durations, or structured data.
+
+### D. Add robust loading and error states
+
+Every AI action must:
+- Show a visible loading state.
+- Prevent accidental duplicate submissions while a request is pending.
+- Complete or fail within a reasonable timeout.
+- Handle unavailable services, invalid responses, rate limits, network errors, missing credentials, and server errors.
+- Show a useful message and a working retry action.
+- Preserve the user's input when a request fails.
+- Restore the button to a usable state after success or failure.
+- Avoid logging sensitive user content or secrets.
+
+If a fallback is offered, label it explicitly as a non-AI or offline fallback. Use it only when it can genuinely provide a useful result, and never misrepresent it as a successful AI response.
+
+### E. Test every generation path
+
+Test each feature independently with:
+1. A normal valid input.
+2. An empty or invalid input.
+3. A different input.
+4. A repeated regeneration request.
+5. A failed or unavailable AI service.
+6. A malformed response.
+7. A save action and page refresh, where applicable.
+
+Fix the discovered problems in the actual source code.
+
+# PART 9 — MAKE EVERY ICON, BUTTON & INTERACTION FUNCTIONAL
+
+Perform a complete interaction audit across every page, modal, menu, card, dashboard section, and mobile navigation state.
+
+Inspect:
+- Header and sidebar icons.
+- Navigation links.
+- Task creation, editing, completion, reopening, and deletion.
+- Search and filtering.
+- Sort and priority controls.
+- Dropdowns and menus.
+- Close and back buttons.
+- AI generation and regeneration buttons.
+- Copy, export, and import controls.
+- Garden and reward interactions.
+- Timer controls.
+- Settings and preference controls.
+- Empty-state calls to action.
+- Confirmation dialogs.
+- All newly introduced features.
+- Any existing feature not listed here.
+
+### Rules
+
+1. Every visible interactive element must perform its advertised action.
+2. If an icon represents an action, connect it to a real event handler.
+3. If a control is not implemented, implement it or remove/clearly disable it instead of pretending it works.
+4. Add accessible names and tooltips to icon-only buttons.
+5. Use semantic buttons for actions and links for navigation.
+6. Prevent accidental form submission and nested click conflicts.
+7. Add confirmation before destructive actions where appropriate.
+8. Provide visible success and error feedback.
+9. Ensure keyboard navigation, focus visibility, and sensible Escape-key behavior for dialogs.
+10. Prevent repeated clicks from creating duplicate tasks, rewards, or requests.
+11. Ensure controls are not permanently disabled after an error.
+12. Do not use alert pop-ups for every minor action when an unobtrusive status message would work better.
+
+Create a complete inventory of interactive elements and test each one. Do not assume an icon works just because it looks correct.
+
+# PART 10 — DATA PERSISTENCE, UNDO, IMPORT & EXPORT
+
+Review how the current application saves user data and improve it without discarding valid existing data.
+
+### Persistence
+
+- Tasks, preferences, energy selection, reflections, and progress should persist as appropriate.
+- Handle missing, malformed, outdated, or inaccessible stored data gracefully.
+- Use versioned storage and safe migration if the existing schema changes.
+- Do not call broad destructive methods such as clearing all browser storage.
+- Never delete unrelated website or application data.
+- Avoid overwriting saved user data with demo data after refresh.
+- Make first-run demo content optional, clearly labeled, and easy to dismiss or reset.
+
+### Undo
+
+Add an undo action for appropriate recent operations, including task completion or accidental deletion where feasible.
+
+- Make the action reliable and time-limited where appropriate.
+- Keep garden rewards and progress consistent after undo.
+- Provide confirmation for irreversible operations.
+- Do not imply that an operation can be undone when it cannot.
+
+### Import and export
+
+- Implement working export and import for supported user data.
+- Prefer a documented JSON format for backup and restore.
+- Include a clear format/version field.
+- Validate imported data before applying it.
+- Show an understandable error for invalid or unsupported files.
+- Do not overwrite existing data without clear confirmation.
+- Revoke temporary object URLs at the correct time after downloads.
+- Export only the intended application data, never API keys or secrets.
+
+# PART 11 — UI/UX & SLOTH PERSONALITY
+
+Keep the current visual identity and improve it rather than redesigning it unnecessarily.
+
+### Design direction
+
+- Warm cream backgrounds.
+- Muted forest green and sage accents.
+- Soft, readable typography.
+- Rounded cards and carefully balanced whitespace.
+- Cute but polished sloth illustrations.
+- A calm, modern productivity dashboard.
+- Consistent icons and visual hierarchy.
+- Clear distinction between primary and secondary actions.
+
+### Sloth personality
+
+Use expressive sloth states for meaningful moments:
+- Welcoming a new user.
+- Thinking during an AI generation.
+- Celebrating a completed task.
+- Resting during a break.
+- Encouraging the user during Sloth Rescue Mode.
+- Growing alongside the Sloth Garden.
+
+Avoid cluttering every screen with animations or oversized illustrations.
+
+### Animations
+
+Add subtle, professional motion:
+- Smooth section transitions.
+- Gentle scroll reveals where appropriate.
+- Small button and card interactions.
+- Soft garden growth animations.
+- Loading animations with a sloth personality.
+- Smooth modal and panel transitions.
+
+Animations must not block functionality, cause layout shifts, or slow down the app. Respect `prefers-reduced-motion`.
+
+### Responsive design
+
+Test desktop, tablet, and mobile layouts. Ensure:
+- No horizontal overflow.
+- Buttons remain usable on touch screens.
+- Forms and dialogs fit smaller screens.
+- Navigation works correctly.
+- Text remains readable.
+- Focus sessions and AI results work on mobile.
+
+Do not sacrifice usability for visual effects.
+
+# PART 12 — VERCEL DEPLOYMENT & SECURITY
+
+The project must work in the actual deployment environment, not just in Google AI Studio's preview.
+
+1. Inspect the current framework and build scripts before changing architecture.
+2. Preserve the existing framework unless a real compatibility problem requires a justified change.
+3. Verify the production build command and output directory.
+4. Ensure direct page navigation and refreshing routes work correctly.
+5. Ensure all required API routes are supported by the chosen Vercel architecture.
+6. Do not depend on a long-running Express server or unsupported persistent server process in a serverless deployment.
+7. If the existing backend is incompatible with Vercel, migrate it carefully to supported serverless functions while preserving behavior.
+8. Keep API keys and provider credentials server-side.
+9. Add clear documentation for required environment variables without including their real values.
+10. Validate requests and responses on the server.
+11. Handle request timeouts, reasonable payload limits, rate limits, and provider errors.
+12. Avoid unnecessarily expensive or repeated AI calls.
+13. Never expose stack traces, secrets, or sensitive environment data to users.
+14. Keep CORS and other security settings appropriate to the actual deployment architecture.
+15. Check dependency versions and remove only genuinely unnecessary dependencies.
+16. Ensure all configuration files and package scripts are correct.
+17. Add a clear `.env.example` with placeholder values if appropriate, and ensure real environment files are ignored by Git.
+18. If external AI credentials are missing in production, show a useful configuration error instead of crashing the entire application.
+
+Do not claim deployment is successful unless it has actually been deployed and verified. If external dashboard access or credentials are unavailable, complete all repository-side changes and tell me precisely what remains to be configured.
+
+# PART 13 — ACCESSIBILITY, PRIVACY & TRUST
+
+- Provide keyboard-accessible interactions and visible focus indicators.
+- Label form fields and icon-only buttons.
+- Maintain readable color contrast.
+- Respect reduced-motion preferences.
+- Explain what data is stored locally and what information is sent to an AI provider.
+- Never send unnecessary personal information to AI services.
+- Do not collect names, email addresses, or other personal information unless genuinely required.
+- Do not store API keys in browser storage.
+- Do not claim data is encrypted, private, or never shared unless the implementation supports that claim.
+- Give users a clear way to remove their own app data without affecting unrelated browser storage.
+- Distinguish saved tasks, calculated statistics, AI suggestions, and sample content.
+
+# PART 14 — TESTING & FINAL QUALITY CHECK
+
+After implementing all changes, run the available checks and fix the errors you discover.
+
+### Required checks
+
+- Install dependencies successfully using the project's documented workflow.
+- Run linting and type checks if configured.
+- Run the production build.
+- Run available unit and integration tests.
+- Add focused tests for important new logic where practical.
+- Test task CRUD and persistence after refreshing.
+- Test every AI generation independently.
+- Test loading, failure, retry, and malformed AI responses.
+- Test all timer controls.
+- Test energy-based planning.
+- Test garden reward deduplication and undo behavior.
+- Test weekly statistics against known sample data.
+- Test import/export and invalid import files.
+- Test every visible button and icon.
+- Test empty states and first-run experience.
+- Test mobile layouts and keyboard interactions.
+- Verify Vercel-specific routing and API configuration.
+- Search for exposed credentials, accidental debug code, and misleading mock behavior.
+
+Do not add fake test results or claim checks passed when they were not run. If a check cannot be run in the current environment, state that limitation clearly.
+
+## FINAL ACCEPTANCE CRITERIA
+
+The project is ready only when:
+
+- All existing working features are preserved.
+- All five new experiences are implemented: Sloth Rescue Mode, Energy-Based Daily Planner, Gentle Focus Sessions, Progress Without Guilt with Sloth Garden improvements, and Weekly Sloth Reflection.
+- Quick Capture and Smart Rescheduling are implemented.
+- Every existing AI generation has been traced, tested, and corrected wherever necessary.
+- Different tools produce outputs appropriate to their individual purposes.
+- Regeneration uses the actual input and offers meaningful alternatives.
+- AI failures are handled visibly and honestly.
+- Every visible interactive icon and button has a working action or is clearly disabled.
+- Task data persists correctly.
+- Progress and rewards cannot be duplicated through repeated actions.
+- The app remains visually cohesive, responsive, and accessible.
+- No real credentials are exposed.
+- The production build passes, or any unresolved blocker is explicitly documented.
+- Vercel deployment requirements are documented and compatible with the project's actual architecture.
+
+## FINAL RESPONSE REQUIRED
+
+When finished, provide a concise but specific report containing:
+
+1. Features implemented.
+2. Existing bugs found and fixed.
+3. AI generation paths audited and tested.
+4. Icons and interactions checked.
+5. Files and important architecture changes made.
+6. Build and test results, including failures or checks that could not be performed.
+7. Required environment variables and setup steps.
+8. Any remaining limitations or manual steps before deployment.
+
+**Begin by inspecting the existing project, then implement the changes directly. Prioritize correctness and functionality first, visual polish second. Do not stop at a plan or mockup.**

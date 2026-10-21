@@ -4,9 +4,12 @@ import {
   SlothGardenData,
   TimeBlock,
   AppSettings,
+  EnergyLevel,
+  FocusSession,
+  WeeklyReflectionData,
 } from '../types';
 
-const STORAGE_VERSION = '2.0';
+const STORAGE_VERSION = '2.1';
 const STORAGE_PREFIX = 'slothdesk_';
 
 export const KEYS = {
@@ -17,6 +20,10 @@ export const KEYS = {
   PLANNER: `${STORAGE_PREFIX}planner`,
   SETTINGS: `${STORAGE_PREFIX}settings`,
   QUICK_NOTES: `${STORAGE_PREFIX}quick_notes`,
+  FOCUS_SESSIONS: `${STORAGE_PREFIX}focus_sessions`,
+  WEEKLY_REFLECTIONS: `${STORAGE_PREFIX}weekly_reflections`,
+  CURRENT_ENERGY: `${STORAGE_PREFIX}current_energy`,
+  ACTIVE_FOCUS_STATE: `${STORAGE_PREFIX}active_focus_state`,
 };
 
 export const INITIAL_TASKS: Task[] = [
@@ -95,27 +102,47 @@ export const INITIAL_GARDEN: SlothGardenData = {
   ],
 };
 
+export const INITIAL_FOCUS_SESSIONS: FocusSession[] = [
+  {
+    id: 'foc-init-1',
+    taskId: 'task-3',
+    taskTitle: 'Take an unplugged 15-minute tea break',
+    durationMinutes: 15,
+    completedAt: new Date(Date.now() - 86400000).toISOString(),
+    mode: 'timed',
+  },
+  {
+    id: 'foc-init-2',
+    taskTitle: 'Mindful Morning Setup',
+    durationMinutes: 25,
+    completedAt: new Date().toISOString(),
+    mode: 'timed',
+  },
+];
+
 export const INITIAL_ACTIVITIES: ActivityItem[] = [
   {
     id: 'act-1',
     timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
     type: 'task_completed',
     title: 'Completed "Take an unplugged 15-minute tea break"',
-    details: 'Sprouted 1 leaf on the Sloth Garden tree 🌿',
+    details: 'Sprouted leaf #7 in Sloth Garden 🌿',
+    undoable: true,
+    undoPayload: { taskId: 'task-3' },
   },
   {
     id: 'act-2',
     timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
-    type: 'task_created',
-    title: 'Created task "Draft weekly priorities without rushing"',
-    details: 'Set priority to High with 3 micro-steps',
+    type: 'ai_organize',
+    title: 'Organized messy brain dump notes',
+    details: 'Derived 3 clean focus milestones',
   },
   {
     id: 'act-3',
-    timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
-    type: 'ai_organize',
-    title: 'Organized messy brainstorm note',
-    details: 'Generated 4 structured tasks via Lazy Task Organizer',
+    timestamp: new Date(Date.now() - 3600000 * 8).toISOString(),
+    type: 'task_created',
+    title: 'Created task "Review team feedback notes"',
+    details: 'Priority: MEDIUM',
   },
 ];
 
@@ -133,26 +160,25 @@ export const INITIAL_PLANNER: TimeBlock[] = [
     id: 'block-2',
     startTime: '09:45',
     endTime: '10:05',
-    title: 'Sloth warm tea & mindful gazing',
+    title: 'Sloth herbal tea & balcony window gaze',
     isBreak: true,
     energyLevel: 'low',
   },
   {
     id: 'block-3',
     startTime: '10:05',
-    endTime: '10:45',
+    endTime: '10:50',
     title: 'Review team feedback notes',
     isBreak: false,
     taskId: 'task-2',
-    energyLevel: 'normal',
+    energyLevel: 'high',
   },
   {
     id: 'block-4',
-    startTime: '10:45',
-    endTime: '11:00',
-    title: 'Water windowsill succulents & stretch',
-    isBreak: false,
-    taskId: 'task-4',
+    startTime: '10:50',
+    endTime: '11:15',
+    title: 'Gentle stretch & posture reset',
+    isBreak: true,
     energyLevel: 'low',
   },
 ];
@@ -164,29 +190,31 @@ export const INITIAL_SETTINGS: AppSettings = {
   aiModelPreference: 'auto',
 };
 
-// Safe storage access helper
+// Safe LocalStorage access helper
 function safeGet<T>(key: string, fallback: T): T {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return fallback;
     const item = window.localStorage.getItem(key);
     if (!item) return fallback;
-    return JSON.parse(item) as T;
+    return JSON.parse(item);
   } catch (err) {
-    console.warn(`Storage read error for key "${key}", using fallback:`, err);
+    console.warn(`Failed to read ${key} from localStorage, using fallback:`, err);
     return fallback;
   }
 }
 
-function safeSet<T>(key: string, value: T): boolean {
+function safeSet<T>(key: string, value: T): void {
   try {
-    if (typeof window === 'undefined' || !window.localStorage) return false;
+    if (typeof window === 'undefined' || !window.localStorage) return;
     window.localStorage.setItem(key, JSON.stringify(value));
-    return true;
   } catch (err) {
-    console.error(`Storage write error for key "${key}":`, err);
-    return false;
+    console.error(`Failed to save ${key} to localStorage:`, err);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Load & Save Methods
+// ---------------------------------------------------------------------------
 
 export function loadTasks(): Task[] {
   const loaded = safeGet<Task[]>(KEYS.TASKS, INITIAL_TASKS);
@@ -201,7 +229,6 @@ export function saveTasks(tasks: Task[]): void {
 export function loadGarden(): SlothGardenData {
   const loaded = safeGet<SlothGardenData>(KEYS.GARDEN, INITIAL_GARDEN);
   if (!loaded || typeof loaded.leafCount !== 'number') return INITIAL_GARDEN;
-  // Ensure completedTaskIds array exists
   if (!Array.isArray(loaded.completedTaskIds)) {
     loaded.completedTaskIds = ['task-3'];
   }
@@ -241,6 +268,42 @@ export function saveSettings(settings: AppSettings): void {
   safeSet(KEYS.SETTINGS, settings);
 }
 
+export function loadCurrentEnergy(): EnergyLevel {
+  const loaded = safeGet<EnergyLevel>(KEYS.CURRENT_ENERGY, 'normal');
+  return ['low', 'normal', 'high'].includes(loaded) ? loaded : 'normal';
+}
+
+export function saveCurrentEnergy(energy: EnergyLevel): void {
+  safeSet(KEYS.CURRENT_ENERGY, energy);
+}
+
+export function loadFocusSessions(): FocusSession[] {
+  const loaded = safeGet<FocusSession[]>(KEYS.FOCUS_SESSIONS, INITIAL_FOCUS_SESSIONS);
+  if (!Array.isArray(loaded)) return INITIAL_FOCUS_SESSIONS;
+  return loaded;
+}
+
+export function saveFocusSessions(sessions: FocusSession[]): void {
+  safeSet(KEYS.FOCUS_SESSIONS, sessions);
+}
+
+export function addFocusSession(session: FocusSession): FocusSession[] {
+  const current = loadFocusSessions();
+  const updated = [session, ...current];
+  saveFocusSessions(updated);
+  return updated;
+}
+
+export function loadWeeklyReflections(): WeeklyReflectionData[] {
+  const loaded = safeGet<WeeklyReflectionData[]>(KEYS.WEEKLY_REFLECTIONS, []);
+  if (!Array.isArray(loaded)) return [];
+  return loaded;
+}
+
+export function saveWeeklyReflections(reflections: WeeklyReflectionData[]): void {
+  safeSet(KEYS.WEEKLY_REFLECTIONS, reflections);
+}
+
 export function loadQuickNotes(): string[] {
   return safeGet<string[]>(KEYS.QUICK_NOTES, [
     'Remember: Moving slow is not falling behind.',
@@ -250,6 +313,37 @@ export function loadQuickNotes(): string[] {
 
 export function saveQuickNotes(notes: string[]): void {
   safeSet(KEYS.QUICK_NOTES, notes);
+}
+
+// Active Focus session persistence (for refresh drift safety)
+export interface ActiveFocusState {
+  taskId?: string;
+  taskTitle: string;
+  durationSeconds: number;
+  remainingSeconds: number;
+  startTimestamp: number;
+  isPaused: boolean;
+  pausedAt?: number;
+}
+
+export function loadActiveFocusState(): ActiveFocusState | null {
+  return safeGet<ActiveFocusState | null>(KEYS.ACTIVE_FOCUS_STATE, null);
+}
+
+export function saveActiveFocusState(state: ActiveFocusState | null): void {
+  if (state === null) {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(KEYS.ACTIVE_FOCUS_STATE);
+      }
+    } catch {}
+  } else {
+    safeSet(KEYS.ACTIVE_FOCUS_STATE, state);
+  }
+}
+
+export function clearActiveFocusState(): void {
+  saveActiveFocusState(null);
 }
 
 // ---------------------------------------------------------------------------
@@ -270,7 +364,7 @@ export function clearSlothDeskData(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Backup Export & Validated Import (Feature 6F)
+// Backup Export & Validated Import
 // ---------------------------------------------------------------------------
 
 export interface SlothDeskBackup {
@@ -282,6 +376,8 @@ export interface SlothDeskBackup {
   activities: ActivityItem[];
   planner: TimeBlock[];
   settings: AppSettings;
+  focusSessions?: FocusSession[];
+  weeklyReflections?: WeeklyReflectionData[];
   quickNotes?: string[];
 }
 
@@ -295,6 +391,8 @@ export function generateExportBackup(): string {
     activities: loadActivities(),
     planner: loadPlanner(),
     settings: loadSettings(),
+    focusSessions: loadFocusSessions(),
+    weeklyReflections: loadWeeklyReflections(),
     quickNotes: loadQuickNotes(),
   };
   return JSON.stringify(backup, null, 2);
@@ -304,7 +402,7 @@ export function validateBackupJson(jsonString: string): {
   isValid: boolean;
   error?: string;
   data?: SlothDeskBackup;
-  summary?: { taskCount: number; leafCount: number; plannerBlocks: number };
+  summary?: { taskCount: number; leafCount: number; plannerBlocks: number; focusSessionsCount: number };
 } {
   try {
     const parsed = JSON.parse(jsonString);
@@ -342,6 +440,8 @@ export function validateBackupJson(jsonString: string): {
       activities: Array.isArray(parsed.activities) ? parsed.activities : [],
       planner: Array.isArray(parsed.planner) ? parsed.planner : [],
       settings: parsed.settings || INITIAL_SETTINGS,
+      focusSessions: Array.isArray(parsed.focusSessions) ? parsed.focusSessions : [],
+      weeklyReflections: Array.isArray(parsed.weeklyReflections) ? parsed.weeklyReflections : [],
       quickNotes: Array.isArray(parsed.quickNotes) ? parsed.quickNotes : [],
     };
 
@@ -352,6 +452,7 @@ export function validateBackupJson(jsonString: string): {
         taskCount: data.tasks.length,
         leafCount: data.garden.leafCount,
         plannerBlocks: data.planner.length,
+        focusSessionsCount: data.focusSessions?.length || 0,
       },
     };
   } catch (err: any) {
@@ -365,6 +466,12 @@ export function restoreBackup(backup: SlothDeskBackup): void {
   saveActivities(backup.activities);
   savePlanner(backup.planner);
   saveSettings(backup.settings);
+  if (backup.focusSessions) {
+    saveFocusSessions(backup.focusSessions);
+  }
+  if (backup.weeklyReflections) {
+    saveWeeklyReflections(backup.weeklyReflections);
+  }
   if (backup.quickNotes) {
     saveQuickNotes(backup.quickNotes);
   }

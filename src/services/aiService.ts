@@ -9,6 +9,7 @@ import {
   EnergyLevel,
   QuickCaptureItem,
   ReschedulePlan,
+  RescueUnstuckResult,
 } from '../types';
 
 // Helper to safely parse JSON responses or throw meaningful error
@@ -224,7 +225,8 @@ export async function convertNotesToActions(
 
 export async function generateSlowSchedule(
   tasks: Task[],
-  availableHours: number
+  availableHours: number,
+  energyLevel: EnergyLevel = 'normal'
 ): Promise<{ schedule: TimeBlock[]; source: string; isOverloaded?: boolean }> {
   try {
     const res = await fetch('/api/ai/planner', {
@@ -233,6 +235,7 @@ export async function generateSlowSchedule(
       body: JSON.stringify({
         tasks: tasks.map((t) => ({ id: t.id, title: t.title, priority: t.priority, estimatedMinutes: t.estimatedMinutes })),
         availableHours,
+        energyLevel,
       }),
     });
 
@@ -371,6 +374,136 @@ export async function requestSmartReschedule(
           },
         ],
         deferredTasks: openTasks.slice(1).map((t) => t.title),
+      },
+      source: 'demo_fallback',
+    };
+  }
+}
+
+export async function requestRescueUnstuck(
+  situation: string,
+  challengeType?: string,
+  variationIndex = 0
+): Promise<{ rescue: RescueUnstuckResult; source: string }> {
+  try {
+    const res = await fetch('/api/ai/rescue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ situation, challengeType, variationIndex }),
+    });
+
+    const data = await parseResponseOrThrow(res);
+    return {
+      rescue: data.rescue,
+      source: data.source || 'demo_fallback',
+    };
+  } catch (err: any) {
+    console.warn('API rescue call failed, applying client fallback:', err.message);
+    const fallbacks = [
+      {
+        acknowledgement: 'Feeling stuck is completely normal. We do not need to finish everything right now; we only need one tiny, friction-free moment to begin.',
+        firstAction: {
+          title: 'Open materials and write 1 rough bullet',
+          estimatedMinutes: 10,
+          starterAction: 'Sit comfortably, take 2 calm breaths',
+          reason: 'Breaking the inertia is 90% of the friction.',
+        },
+        followUpSteps: ['Set a gentle 10-minute timer', 'Step away when timer rings'],
+        suggestedDurationMinutes: 10,
+        canMakeSmaller: true,
+      },
+      {
+        acknowledgement: 'When inertia is heavy, lower the bar until it feels almost ridiculously easy. Crossing the starting line is all that matters.',
+        firstAction: {
+          title: 'The 2-Minute Zero-Pressure Setup',
+          estimatedMinutes: 5,
+          starterAction: 'Open the document or app and just read the first line without editing',
+          reason: 'You do not have to finish anything; you only have to touch the starting point.',
+        },
+        followUpSteps: ['Jot down one rough word', 'Acknowledge your effort and pause'],
+        suggestedDurationMinutes: 5,
+        canMakeSmaller: true,
+      },
+      {
+        acknowledgement: 'Task paralysis is often physical tension trapped in the nervous system. Resetting your body creates immediate mental space.',
+        firstAction: {
+          title: 'Physical Reset: Warm Water & Shoulder Rolls',
+          estimatedMinutes: 5,
+          starterAction: 'Stand up, roll shoulders back 3 times, sip warm water',
+          reason: 'Gentle physical movement releases the freeze response.',
+        },
+        followUpSteps: ['Clear away 2 distracting items from desk', 'Return to chair with zero rush'],
+        suggestedDurationMinutes: 5,
+        canMakeSmaller: true,
+      },
+    ];
+
+    const chosen = fallbacks[variationIndex % fallbacks.length];
+    return {
+      rescue: chosen,
+      source: 'demo_fallback',
+    };
+  }
+}
+
+export async function requestWeeklyReflection(
+  completedTasks: Task[],
+  pendingTasks: Task[],
+  focusMinutes: number,
+  userReflection?: string,
+  variationIndex = 0
+): Promise<{
+  reflection: {
+    aiReflectionSummary: string;
+    smallWins: string[];
+    suggestedNextWeekFocus: string[];
+  };
+  source: string;
+}> {
+  try {
+    const res = await fetch('/api/ai/weekly-reflection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        completedTasks: completedTasks.map((t) => ({ title: t.title, completedAt: t.completedAt })),
+        pendingTasks: pendingTasks.map((t) => ({ title: t.title, priority: t.priority })),
+        focusMinutes,
+        userReflection,
+        variationIndex,
+      }),
+    });
+
+    const data = await parseResponseOrThrow(res);
+    return {
+      reflection: data.reflection,
+      source: data.source || 'demo_fallback',
+    };
+  } catch (err: any) {
+    console.warn('API weekly reflection call failed, applying client fallback:', err.message);
+    const wins: string[] = [];
+    if (completedTasks.length > 0) {
+      wins.push(`Completed ${completedTasks.length} meaningful outcomes with steady, calm focus.`);
+    } else {
+      wins.push('Honored personal boundaries and preserved mental capacity.');
+    }
+    if (focusMinutes > 0) {
+      wins.push(`Dedicated ${focusMinutes} total minutes to unhurried focus sessions.`);
+    }
+    wins.push('Practiced mindful pacing instead of chaotic urgency.');
+
+    const nextFocus: string[] = [];
+    if (pendingTasks.length > 0) {
+      nextFocus.push(`Start Monday with a gentle focus block on "${pendingTasks[0].title}".`);
+    } else {
+      nextFocus.push('Set 2 gentle intentions for the start of the week.');
+    }
+    nextFocus.push('Schedule at least two unplugged 15-minute tea breaks.');
+
+    return {
+      reflection: {
+        aiReflectionSummary: `This week reflected steady, unhurried progress. By taking care of ${completedTasks.length} tasks and dedicating ${focusMinutes} minutes to deep presence, you demonstrated that moving slowly and thoughtfully gets you further without the burnout.`,
+        smallWins: wins,
+        suggestedNextWeekFocus: nextFocus,
       },
       source: 'demo_fallback',
     };

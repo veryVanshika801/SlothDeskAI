@@ -1,5 +1,5 @@
 import React from 'react';
-import { Task, SlothGardenData, MascotState } from '../../types';
+import { Task, SlothGardenData, MascotState, EnergyLevel } from '../../types';
 import { SlothMascot } from '../mascot/SlothMascot';
 import {
   CheckCircle2,
@@ -14,26 +14,37 @@ import {
   Trees,
   Layers,
   Coffee,
+  LifeBuoy,
+  BookOpen,
+  Battery,
+  BatteryMedium,
+  BatteryFull,
 } from 'lucide-react';
 
 interface DashboardOverviewProps {
   tasks: Task[];
   garden: SlothGardenData;
+  energyLevel?: EnergyLevel;
   onOpenTab: (tab: string) => void;
   onToggleComplete: (taskId: string) => void;
   onOpenMakeSmaller: (taskTitle: string) => void;
   onStartFocusOnTask: (taskId: string) => void;
   onOpenQuickCapture: () => void;
+  onOpenRescueMode: () => void;
+  onUpdateEnergy?: (energy: EnergyLevel) => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   tasks,
   garden,
+  energyLevel = 'normal',
   onOpenTab,
   onToggleComplete,
   onOpenMakeSmaller,
   onStartFocusOnTask,
   onOpenQuickCapture,
+  onOpenRescueMode,
+  onUpdateEnergy,
 }) => {
   const openTasks = tasks.filter((t) => !t.completed);
   const completedTasks = tasks.filter((t) => t.completed);
@@ -46,11 +57,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   const topNextTask = openTasks[0];
 
-  // Contextual sloth message based on real data
+  // Contextual sloth message based on real data & energy
   let slothMessage = "Everything's calm. Move at your natural pace.";
   let mascotState: MascotState = 'idle';
 
-  if (openTasks.length === 0) {
+  if (energyLevel === 'low') {
+    slothMessage = "Low-energy mode active. Do just one tiny move, or rest without guilt.";
+    mascotState = 'low-energy';
+  } else if (openTasks.length === 0) {
     slothMessage = 'All tasks cleared! Time for a warm cup of herbal tea.';
     mascotState = 'encouragement';
   } else if (highPriorityTasks.length > 0) {
@@ -78,7 +92,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   return (
     <div className="space-y-8">
       {/* Personalized Header & Sloth Companion Panel */}
-      <div className="bg-[#E9E0D2] rounded-2xl p-6 md:p-8 border border-[#A6AD99]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
+      <div className="bg-[#E9E0D2] rounded-3xl p-6 md:p-8 border border-[#A6AD99]/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
         <div className="flex items-center gap-6">
           <SlothMascot state={mascotState} size="lg" />
           <div className="space-y-1">
@@ -90,28 +104,83 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <h1 className="text-2xl md:text-3xl font-serif font-bold text-[#22221F]">
               {timeGreeting}. Let's make today a little easier.
             </h1>
-            <p className="text-sm text-[#77766E] max-w-lg italic">
+            <p className="text-xs sm:text-sm text-[#77766E] max-w-lg italic leading-relaxed">
               "{slothMessage}"
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+        <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+          {/* Sloth Rescue Mode Trigger Button (Part 2) */}
+          <button
+            onClick={onOpenRescueMode}
+            className="px-4 py-2.5 rounded-xl bg-[#C47D61] text-white hover:bg-[#b06f55] text-xs font-semibold transition-colors flex items-center gap-2 shadow-sm"
+          >
+            <LifeBuoy className="w-4 h-4" />
+            <span>Help me get unstuck</span>
+          </button>
+
           <button
             onClick={onOpenQuickCapture}
             className="px-4 py-2.5 rounded-xl bg-white hover:bg-[#F5F0E7] text-[#22221F] text-xs font-semibold transition-colors border border-[#A6AD99]/40 flex items-center gap-2 shadow-xs"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#39483B]" />
-            <span>Quick Brain Dump</span>
+            <span>Quick Dump</span>
           </button>
+
           <button
             onClick={() => onOpenTab('low-energy')}
             className="px-4 py-2.5 rounded-xl bg-[#39483B] hover:bg-[#2c392e] text-[#F5F0E7] text-xs font-semibold transition-colors shadow-sm flex items-center gap-2"
           >
             <Coffee className="w-3.5 h-3.5" />
-            <span>Low-Energy Mode</span>
+            <span>Low-Energy</span>
           </button>
         </div>
+      </div>
+
+      {/* Energy Level Selector Bar (Part 3) */}
+      <div className="bg-white rounded-2xl p-4 border border-[#A6AD99]/30 flex flex-wrap items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-center gap-3">
+          <span className="text-xs uppercase tracking-wider font-bold text-[#77766E]">
+            Today's Energy Level:
+          </span>
+          <div className="flex items-center gap-1.5 bg-[#F5F0E7] p-1 rounded-xl border border-[#A6AD99]/30 text-xs">
+            {(
+              [
+                { level: 'low', label: 'Low Energy', desc: '1–2 essential tasks, gentle pacing', icon: Battery },
+                { level: 'normal', label: 'Medium Energy', desc: 'Balanced focus & mindful pauses', icon: BatteryMedium },
+                { level: 'high', label: 'High Energy', desc: 'Deeper focus sessions', icon: BatteryFull },
+              ] as const
+            ).map((opt) => {
+              const Icon = opt.icon;
+              const isSelected = energyLevel === opt.level;
+              return (
+                <button
+                  key={opt.level}
+                  type="button"
+                  onClick={() => onUpdateEnergy && onUpdateEnergy(opt.level)}
+                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-colors ${
+                    isSelected
+                      ? 'bg-[#39483B] text-white shadow-xs'
+                      : 'text-[#77766E] hover:text-[#22221F]'
+                  }`}
+                  title={opt.desc}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <span className="text-xs text-[#77766E] italic">
+          {energyLevel === 'low'
+            ? 'Pacing adjusted to minimize cognitive load & burnout.'
+            : energyLevel === 'high'
+            ? 'Ready for deeper blocks with scheduled mindful breaks.'
+            : 'Balanced rhythm respecting your natural capacity.'}
+        </span>
       </div>
 
       {/* Recommended Next Action Focus Strip */}
@@ -153,9 +222,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             color: 'text-[#39483B]',
           },
           {
-            label: 'Completed Tasks',
-            value: completedTasks.length,
-            unit: 'leaves earned',
+            label: 'Garden Growth',
+            value: garden.leafCount,
+            unit: 'leaves sprouted 🌿',
             color: 'text-[#39483B]',
           },
           {
@@ -166,7 +235,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           },
           {
             label: 'Focus Time',
-            value: `${Math.round(totalFocusMinutes / 60 * 10) / 10}`,
+            value: `${Math.round((totalFocusMinutes / 60) * 10) / 10}`,
             unit: 'hours estimated',
             color: 'text-[#22221F]',
           },
@@ -188,7 +257,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         ))}
       </div>
 
-      {/* AI Quick Actions Grid */}
+      {/* AI Quick Actions Grid (Updated with Rescue and Weekly Reflection) */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-serif font-bold text-[#22221F]">
@@ -197,14 +266,23 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <span className="text-xs text-[#77766E]">Calm, transparent workflows</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
+            {
+              id: 'rescue',
+              title: 'Sloth Rescue Mode',
+              desc: 'Paralyzed or overwhelmed? Get unblocked with 1 micro step.',
+              icon: LifeBuoy,
+              cta: 'Unstick Me',
+              onClick: onOpenRescueMode,
+            },
             {
               id: 'organizer',
               title: 'Organize My Mess',
               desc: 'Turn chaotic brain dumps into prioritized structured tasks.',
               icon: Sparkles,
               cta: 'Dump Notes',
+              onClick: () => onOpenTab('organizer'),
             },
             {
               id: 'breakdown',
@@ -212,6 +290,23 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               desc: 'Slice overwhelming projects into tiny 10-minute actions.',
               icon: Scissors,
               cta: 'Deconstruct',
+              onClick: () => onOpenTab('breakdown'),
+            },
+            {
+              id: 'planner',
+              title: 'Slow Planner',
+              desc: 'Build an unhurried daily schedule adapted to your energy.',
+              icon: CalendarDays,
+              cta: 'Plan Rhythm',
+              onClick: () => onOpenTab('planner'),
+            },
+            {
+              id: 'reflection',
+              title: 'Weekly Reflection',
+              desc: 'Review real accomplishments and small wins without guilt.',
+              icon: BookOpen,
+              cta: 'View Reflection',
+              onClick: () => onOpenTab('reflection'),
             },
             {
               id: 'notes',
@@ -219,20 +314,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               desc: 'Extract key points and action items from transcripts & docs.',
               icon: NotebookPen,
               cta: 'Extract Actions',
-            },
-            {
-              id: 'planner',
-              title: 'Slow Planner',
-              desc: 'Build an unhurried daily schedule with mindful breathing room.',
-              icon: CalendarDays,
-              cta: 'Plan Flow',
+              onClick: () => onOpenTab('notes'),
             },
           ].map((action) => {
             const Icon = action.icon;
             return (
               <div
                 key={action.id}
-                onClick={() => onOpenTab(action.id)}
+                onClick={action.onClick}
                 className="bg-[#FFFFFF] p-5 rounded-2xl border border-[#A6AD99]/30 hover:border-[#39483B] hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
               >
                 <div>
@@ -254,127 +343,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Two Column Layout: Priorities & Garden Preview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Today's Priorities List */}
-        <div className="lg:col-span-2 bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-[#A6AD99]/20 pb-4">
-            <div>
-              <h2 className="text-base font-serif font-bold text-[#22221F]">
-                Today's Key Priorities
-              </h2>
-              <p className="text-xs text-[#77766E] mt-0.5">
-                Focus on these items without feeling pressured to clear everything.
-              </p>
-            </div>
-            <button
-              onClick={() => onOpenTab('tasks')}
-              className="text-xs font-semibold text-[#39483B] hover:underline flex items-center gap-1"
-            >
-              <span>View All Tasks</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {openTasks.slice(0, 4).map((task) => (
-              <div
-                key={task.id}
-                className="p-4 rounded-xl bg-[#F5F0E7]/40 border border-[#A6AD99]/25 hover:border-[#A6AD99] flex items-center justify-between gap-4 transition-colors"
-              >
-                <div className="flex items-center gap-3.5 flex-1">
-                  <button
-                    onClick={() => onToggleComplete(task.id)}
-                    className="w-5 h-5 rounded border border-[#A6AD99] bg-white hover:border-[#39483B] flex items-center justify-center transition-colors shrink-0"
-                  >
-                    {task.completed && <Check className="w-3.5 h-3.5 text-[#39483B]" />}
-                  </button>
-
-                  <div>
-                    <div className="text-sm font-medium text-[#22221F]">
-                      {task.title}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-[#77766E] mt-0.5">
-                      <span
-                        className={`font-semibold ${
-                          task.priority === 'high'
-                            ? 'text-[#C47D61]'
-                            : task.priority === 'medium'
-                            ? 'text-[#39483B]'
-                            : 'text-[#77766E]'
-                        }`}
-                      >
-                        {task.priority.toUpperCase()}
-                      </span>
-                      {task.estimatedMinutes && (
-                        <>
-                          <span>·</span>
-                          <span>~{task.estimatedMinutes} mins</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => onStartFocusOnTask(task.id)}
-                    className="p-2 rounded-lg text-[#39483B] hover:bg-[#E9E0D2] transition-colors"
-                    title="Focus on this task"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                  </button>
-                  <button
-                    onClick={() => onOpenMakeSmaller(task.title)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-[#39483B] bg-[#E3E8DD] hover:bg-[#d6ded0] transition-colors"
-                  >
-                    <Scissors className="w-3 h-3" />
-                    <span>Simplify</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {openTasks.length === 0 && (
-              <div className="py-8 text-center text-xs text-[#77766E]">
-                No active tasks remaining. Add one from the tasks tab or dump messy notes!
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Sloth Garden Preview */}
-        <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#A6AD99]/30 shadow-xs flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-[#A6AD99]/20 pb-3">
-              <div className="flex items-center gap-2">
-                <Trees className="w-4 h-4 text-[#39483B]" />
-                <span className="font-serif font-bold text-sm text-[#22221F]">Sloth Garden</span>
-              </div>
-              <span className="text-xs text-[#39483B] font-semibold font-mono">Stage {garden.treeStage}/5</span>
-            </div>
-
-            <div className="text-center py-2">
-              <SlothMascot state="garden" size="md" />
-              <div className="mt-3 text-3xl font-serif font-bold text-[#39483B] tabular-nums">
-                {garden.leafCount}
-              </div>
-              <span className="text-xs text-[#77766E] font-medium block">Permanent Leaves Sprouted</span>
-              <p className="text-[11px] text-[#77766E] mt-2 italic">
-                "No guilt for quiet days. Your tree waits peacefully."
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => onOpenTab('garden')}
-            className="w-full mt-4 py-2 rounded-xl bg-[#E3E8DD] hover:bg-[#d5dfd0] text-[#39483B] text-xs font-semibold transition-colors"
-          >
-            Visit Garden Sanctuary
-          </button>
         </div>
       </div>
     </div>

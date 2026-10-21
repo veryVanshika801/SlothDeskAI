@@ -92,6 +92,25 @@ export interface RescheduleOutput {
   deferredTasks: string[];
 }
 
+export interface RescueOutput {
+  acknowledgement: string;
+  firstAction: {
+    title: string;
+    estimatedMinutes: number;
+    starterAction: string;
+    reason: string;
+  };
+  followUpSteps: string[];
+  suggestedDurationMinutes: number;
+  canMakeSmaller: boolean;
+}
+
+export interface WeeklyReflectionOutput {
+  aiReflectionSummary: string;
+  smallWins: string[];
+  suggestedNextWeekFocus: string[];
+}
+
 // ---------------------------------------------------------------------------
 // Provider Detection & Factory
 // ---------------------------------------------------------------------------
@@ -598,14 +617,27 @@ Output JSON strictly:
 
 export async function generateSlowScheduleAI(
   tasks: Array<{ id: string; title: string; priority: string; estimatedMinutes?: number }>,
-  availableHours: number
+  availableHours: number,
+  energyLevel: 'low' | 'normal' | 'high' = 'normal'
 ): Promise<{ schedule: ScheduleBlockOutput[]; source: string; isOverloaded: boolean }> {
   const totalTaskMins = tasks.reduce((acc, t) => acc + (t.estimatedMinutes || 25), 0);
   const totalAvailableMins = availableHours * 60;
-  const isOverloaded = totalTaskMins > totalAvailableMins * 0.8; // Need at least 20% buffer
+  // In low energy, buffer requirement is higher (35% buffer); in normal 20%; in high 15%
+  const bufferRatio = energyLevel === 'low' ? 0.65 : energyLevel === 'high' ? 0.85 : 0.8;
+  const isOverloaded = totalTaskMins > totalAvailableMins * bufferRatio;
+
+  const energyInstructions =
+    energyLevel === 'low'
+      ? 'The user has LOW energy today. Maximize recovery. Focus sessions must be SHORT (15-25 mins max). Schedule generous 15-20 min restorative breaks (e.g. herbal tea, gentle breathing). Only pick 1-2 most essential low-friction tasks; leave the rest unscheduled.'
+      : energyLevel === 'high'
+      ? 'The user has HIGH energy today. Schedule solid deep work blocks (35-45 mins) for their highest priority outcomes, followed by crisp 10-15 min active stretch breaks. Respect time limits and keep mindful buffers.'
+      : 'The user has NORMAL energy today. Balance 25-35 min focused sessions with 10-15 min calming pauses.';
 
   const systemInstruction = `You are SlothDesk AI, an unhurried daily planner.
 Schedule non-overlapping time blocks starting at 09:00 for ${availableHours} hours total.
+Energy Mode: ${energyLevel.toUpperCase()}.
+${energyInstructions}
+
 Rules:
 - NEVER overlap time blocks.
 - Schedule mindful pauses and tea/stretch breaks between focus blocks.
@@ -627,7 +659,7 @@ Output JSON array:
 
   try {
     const rawJson = await callProvider(
-      `Tasks: ${JSON.stringify(tasks)}\nAvailable hours: ${availableHours}`,
+      `Tasks: ${JSON.stringify(tasks)}\nAvailable hours: ${availableHours}\nEnergy: ${energyLevel}`,
       systemInstruction
     );
     const parsed = JSON.parse(rawJson);
@@ -638,51 +670,138 @@ Output JSON array:
       console.warn('Live AI planner error, using safe fallback:', err.message);
     }
 
-    const blocks: ScheduleBlockOutput[] = [
-      {
-        id: `block-${Date.now()}-1`,
-        startTime: '09:00',
-        endTime: '09:45',
-        title: tasks[0]?.title || 'Morning Unhurried Focus',
-        isBreak: false,
-        taskId: tasks[0]?.id,
-        energyLevel: 'normal',
-      },
-      {
-        id: `block-${Date.now()}-2`,
-        startTime: '09:45',
-        endTime: '10:05',
-        title: 'Sloth herbal tea & mindful window gazing',
-        isBreak: true,
-        energyLevel: 'low',
-      },
-      {
-        id: `block-${Date.now()}-3`,
-        startTime: '10:05',
-        endTime: '10:50',
-        title: tasks[1]?.title || 'Main objective deep work',
-        isBreak: false,
-        taskId: tasks[1]?.id,
-        energyLevel: 'high',
-      },
-      {
-        id: `block-${Date.now()}-4`,
-        startTime: '10:50',
-        endTime: '11:15',
-        title: 'Calm stretch & posture reset',
-        isBreak: true,
-        energyLevel: 'low',
-      },
-      {
-        id: `block-${Date.now()}-5`,
-        startTime: '11:15',
-        endTime: '11:45',
-        title: tasks[2]?.title || 'Gentle wrap-up & inbox review',
-        isBreak: false,
-        taskId: tasks[2]?.id,
-        energyLevel: 'low',
-      },
-    ];
+    let blocks: ScheduleBlockOutput[] = [];
+
+    if (energyLevel === 'low') {
+      blocks = [
+        {
+          id: `block-${Date.now()}-1`,
+          startTime: '09:00',
+          endTime: '09:25',
+          title: tasks[0]?.title || 'Gentle 20-min Single Outcome',
+          isBreak: false,
+          taskId: tasks[0]?.id,
+          energyLevel: 'low',
+        },
+        {
+          id: `block-${Date.now()}-2`,
+          startTime: '09:25',
+          endTime: '09:50',
+          title: 'Warm tea & peaceful window gazing',
+          isBreak: true,
+          energyLevel: 'low',
+        },
+        {
+          id: `block-${Date.now()}-3`,
+          startTime: '09:50',
+          endTime: '10:15',
+          title: tasks[1]?.title || 'Tidy loose desktop notes',
+          isBreak: false,
+          taskId: tasks[1]?.id,
+          energyLevel: 'low',
+        },
+        {
+          id: `block-${Date.now()}-4`,
+          startTime: '10:15',
+          endTime: '11:00',
+          title: 'Unplugged rest & horizontal recovery',
+          isBreak: true,
+          energyLevel: 'low',
+        },
+      ];
+    } else if (energyLevel === 'high') {
+      blocks = [
+        {
+          id: `block-${Date.now()}-1`,
+          startTime: '09:00',
+          endTime: '09:45',
+          title: tasks[0]?.title || 'Morning Deep Focus Block',
+          isBreak: false,
+          taskId: tasks[0]?.id,
+          energyLevel: 'high',
+        },
+        {
+          id: `block-${Date.now()}-2`,
+          startTime: '09:45',
+          endTime: '10:00',
+          title: 'Hydration & physical spine stretch',
+          isBreak: true,
+          energyLevel: 'normal',
+        },
+        {
+          id: `block-${Date.now()}-3`,
+          startTime: '10:00',
+          endTime: '10:45',
+          title: tasks[1]?.title || 'Secondary Core Objective',
+          isBreak: false,
+          taskId: tasks[1]?.id,
+          energyLevel: 'high',
+        },
+        {
+          id: `block-${Date.now()}-4`,
+          startTime: '10:45',
+          endTime: '11:05',
+          title: 'Mindful breathing & tea',
+          isBreak: true,
+          energyLevel: 'low',
+        },
+        {
+          id: `block-${Date.now()}-5`,
+          startTime: '11:05',
+          endTime: '11:45',
+          title: tasks[2]?.title || 'Wrap-up & milestone celebration',
+          isBreak: false,
+          taskId: tasks[2]?.id,
+          energyLevel: 'normal',
+        },
+      ];
+    } else {
+      blocks = [
+        {
+          id: `block-${Date.now()}-1`,
+          startTime: '09:00',
+          endTime: '09:35',
+          title: tasks[0]?.title || 'Morning Balanced Focus',
+          isBreak: false,
+          taskId: tasks[0]?.id,
+          energyLevel: 'normal',
+        },
+        {
+          id: `block-${Date.now()}-2`,
+          startTime: '09:35',
+          endTime: '09:55',
+          title: 'Sloth herbal tea & mindful window gaze',
+          isBreak: true,
+          energyLevel: 'low',
+        },
+        {
+          id: `block-${Date.now()}-3`,
+          startTime: '09:55',
+          endTime: '10:35',
+          title: tasks[1]?.title || 'Secondary Objective Focus',
+          isBreak: false,
+          taskId: tasks[1]?.id,
+          energyLevel: 'normal',
+        },
+        {
+          id: `block-${Date.now()}-4`,
+          startTime: '10:35',
+          endTime: '10:55',
+          title: 'Calm posture reset & stretch',
+          isBreak: true,
+          energyLevel: 'low',
+        },
+        {
+          id: `block-${Date.now()}-5`,
+          startTime: '10:55',
+          endTime: '11:30',
+          title: tasks[2]?.title || 'Gentle inbox & review',
+          isBreak: false,
+          taskId: tasks[2]?.id,
+          energyLevel: 'low',
+        },
+      ];
+    }
 
     return { schedule: blocks.slice(0, Math.max(3, availableHours + 1)), source: 'demo_fallback', isOverloaded };
   }
@@ -826,3 +945,198 @@ Output pure JSON:
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// 8. Sloth Rescue Mode — "Let's get you unstuck" (Part 2)
+// ---------------------------------------------------------------------------
+
+export async function rescueUnstuckAI(
+  situation: string,
+  challengeType?: string,
+  variationIndex = 0
+): Promise<{ rescue: RescueOutput; source: string }> {
+  const variationPrompts = [
+    'Focus on identifying ONE single friction-free first step (5-10 minutes max). Provide warm reassurance.',
+    'Focus on a "Two-Minute Micro-Threshold" strategy: reduce the starter step to something so microscopic it requires near-zero willpower.',
+    'Focus on a "Somatic & Environmental Reset": suggest physical hydration, clearing just the immediate workspace, and taking 3 deep breaths before touching the task.',
+    'Focus on the "Permission to Draft Sloppily": eliminate perfectionism by inviting an intentionally rough, imperfect 5-minute start.',
+  ];
+
+  const currentStrategy = variationPrompts[variationIndex % variationPrompts.length];
+
+  const systemInstruction = `You are SlothDesk AI, a compassionate productivity companion.
+A user is feeling stuck, overwhelmed, or experiencing task paralysis.
+Strategy for this suggestion: ${currentStrategy}
+
+Rules:
+- NEVER diagnose, shame, or lecture the user.
+- Empathize warmly in 1-2 sentences.
+- Recommend ONE single actionable starting step that takes between 3 and 15 minutes.
+- Give a 15-second "starterAction" to cross the activation threshold without fear.
+- Provide 2-3 optional gentle follow-up steps.
+- Set canMakeSmaller to true.
+
+Output strictly valid JSON matching this schema:
+{
+  "acknowledgement": "string",
+  "firstAction": {
+    "title": "string",
+    "estimatedMinutes": number,
+    "starterAction": "string",
+    "reason": "string"
+  },
+  "followUpSteps": ["string", "string"],
+  "suggestedDurationMinutes": number,
+  "canMakeSmaller": true
+}`;
+
+  try {
+    const rawJson = await callProvider(
+      `User situation:\n"""${situation}"""\nChallenge context: ${challengeType || 'general'}\nVariation: ${variationIndex}`,
+      systemInstruction
+    );
+    const rescue: RescueOutput = JSON.parse(rawJson);
+    return { rescue, source: 'live_ai' };
+  } catch (err: any) {
+    if (err.message !== 'DEMO_MODE_ACTIVE') {
+      console.warn('Live AI rescue error, using deterministic fallback:', err.message);
+    }
+
+    const lower = (situation + ' ' + (challengeType || '')).toLowerCase();
+
+    // Distinct fallbacks based on challengeType and variationIndex
+    let firstTitle = 'Open materials and write 1 rough bullet';
+    let starterAction = 'Sit comfortably and take 2 calm breaths';
+    let duration = 10;
+    let reason = 'Breaking the inertia is 90% of the battle.';
+    let followUps = ['Set a gentle 10-minute timer', 'Step away when timer rings'];
+
+    if (variationIndex % 4 === 1) {
+      // 2-minute micro threshold
+      firstTitle = 'Perform the 2-minute zero-pressure setup';
+      starterAction = 'Open the relevant tab or app and do nothing else for 60 seconds';
+      duration = 5;
+      reason = 'You do not have to finish anything; you only have to touch the starting line.';
+      followUps = ['Write one imperfect sentence or line', 'Celebrate crossing the activation hurdle'];
+    } else if (variationIndex % 4 === 2) {
+      // Somatic reset
+      firstTitle = 'Warm water & physical shoulder roll reset';
+      starterAction = 'Stand up, roll shoulders backward 3 times, take a sip of water';
+      duration = 5;
+      reason = 'Mental freeze is often trapped physical tension. Resetting your nervous system unlocks focus.';
+      followUps = ['Clear away 2 distracting items from desk', 'Return to chair with zero urgency'];
+    } else if (variationIndex % 4 === 3) {
+      // Permission to be sloppy
+      firstTitle = 'Create an intentionally bad 5-minute draft';
+      starterAction = 'Label a scrap note "Ugly Draft" so perfectionism cannot interfere';
+      duration = 10;
+      reason = 'When we give ourselves permission to do it poorly, the dread evaporates immediately.';
+      followUps = ['Jot down 3 messy thoughts', 'Refine later with fresh eyes'];
+    } else if (lower.includes('too many') || lower.includes('overwhelm')) {
+      firstTitle = 'Pick just 1 item and hide the rest for 15 minutes';
+      starterAction = 'Cover your full list and write down ONE task on a sticky note';
+      duration = 10;
+      reason = 'Our working memory can only hold 3-4 things. Hiding the rest removes visual pressure.';
+      followUps = ['Focus solely on this single sticky note', 'Give yourself permission to ignore other tabs'];
+    } else if (lower.includes('low energy') || lower.includes('tired')) {
+      firstTitle = 'Low-Energy Minimum Viable Move';
+      starterAction = 'Put on warm socks and grab a warm drink';
+      duration = 10;
+      reason = 'Honoring low capacity protects tomorrow from burnout.';
+      followUps = ['Do the easiest 5-minute piece', 'Stop and rest guilt-free'];
+    }
+
+    return {
+      rescue: {
+        acknowledgement:
+          'Feeling stuck is completely normal and human. You do not have to solve everything right now—we only need one tiny, friction-free moment to begin.',
+        firstAction: {
+          title: firstTitle,
+          estimatedMinutes: duration,
+          starterAction,
+          reason,
+        },
+        followUpSteps: followUps,
+        suggestedDurationMinutes: duration,
+        canMakeSmaller: true,
+      },
+      source: 'demo_fallback',
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 9. Weekly Sloth Reflection (Part 6)
+// ---------------------------------------------------------------------------
+
+export async function weeklyReflectionAI(
+  completedTasks: Array<{ title: string; completedAt?: string }>,
+  pendingTasks: Array<{ title: string; priority: string }>,
+  focusMinutes: number,
+  userReflection?: string,
+  variationIndex = 0
+): Promise<{ reflection: WeeklyReflectionOutput; source: string }> {
+  const systemInstruction = `You are SlothDesk AI, providing an unhurried, guilt-free weekly reflection.
+Acknowledge real effort, honor rest, and never use toxic hustle metrics or arbitrary scores.
+Identify 2-3 genuine small wins from their actual work.
+Suggest 2-3 balanced, unhurried focus themes for the coming week.
+
+Output JSON strictly:
+{
+  "aiReflectionSummary": "string",
+  "smallWins": ["string", "string"],
+  "suggestedNextWeekFocus": ["string", "string"]
+}`;
+
+  try {
+    const rawJson = await callProvider(
+      `Weekly Data:
+Completed (${completedTasks.length}): ${JSON.stringify(completedTasks.slice(0, 10))}
+Pending (${pendingTasks.length}): ${JSON.stringify(pendingTasks.slice(0, 8))}
+Total recorded focus time: ${focusMinutes} minutes.
+User's personal note: "${userReflection || 'None provided'}"
+Variation: ${variationIndex}`,
+      systemInstruction
+    );
+    const reflection: WeeklyReflectionOutput = JSON.parse(rawJson);
+    return { reflection, source: 'live_ai' };
+  } catch (err: any) {
+    if (err.message !== 'DEMO_MODE_ACTIVE') {
+      console.warn('Live AI weekly reflection error, using safe fallback:', err.message);
+    }
+
+    const wins: string[] = [];
+    if (completedTasks.length > 0) {
+      wins.push(`Completed ${completedTasks.length} meaningful outcomes without rushing.`);
+    } else {
+      wins.push('Preserved energy and honored boundaries this week.');
+    }
+
+    if (focusMinutes > 0) {
+      wins.push(`Dedicated ${focusMinutes} minutes to unhurried, mindful focus sessions.`);
+    }
+
+    wins.push('Practiced steady, gentle consistency over chaotic all-nighters.');
+
+    const nextWeekSuggestions: string[] = [];
+    if (pendingTasks.length > 0) {
+      nextWeekSuggestions.push(`Advance "${pendingTasks[0].title}" as Monday's gentle starting point.`);
+      if (pendingTasks[1]) {
+        nextWeekSuggestions.push(`Dedicate one focused morning block to "${pendingTasks[1].title}".`);
+      }
+    } else {
+      nextWeekSuggestions.push('Set 2 gentle intentions for the start of the week.');
+    }
+    nextWeekSuggestions.push('Schedule at least two unplugged 15-minute tea pauses.');
+
+    return {
+      reflection: {
+        aiReflectionSummary: `This week was a testament to unhurried progress. By finishing ${completedTasks.length} items and dedicating mindful time, you proved that moving with intention beats frantic rushing every time.`,
+        smallWins: wins,
+        suggestedNextWeekFocus: nextWeekSuggestions,
+      },
+      source: 'demo_fallback',
+    };
+  }
+}
+

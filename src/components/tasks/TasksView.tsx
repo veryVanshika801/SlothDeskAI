@@ -15,6 +15,7 @@ import {
   Edit2,
   Tag,
   ArrowUpDown,
+  LifeBuoy,
 } from 'lucide-react';
 
 interface TasksViewProps {
@@ -25,6 +26,7 @@ interface TasksViewProps {
   onToggleComplete: (taskId: string) => void;
   onOpenMakeSmaller: (taskTitle: string) => void;
   onStartFocusOnTask: (taskId: string) => void;
+  onOpenRescueMode?: () => void;
 }
 
 export const TasksView: React.FC<TasksViewProps> = ({
@@ -35,6 +37,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
   onToggleComplete,
   onOpenMakeSmaller,
   onStartFocusOnTask,
+  onOpenRescueMode,
 }) => {
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -329,6 +332,15 @@ export const TasksView: React.FC<TasksViewProps> = ({
             <p className="text-xs text-[#77766E] max-w-sm">
               No tasks match this filter. Take a breath, drink some tea, or add your next outcome when ready.
             </p>
+            {onOpenRescueMode && (
+              <button
+                onClick={onOpenRescueMode}
+                className="mt-2 px-4 py-2 rounded-xl bg-[#C47D61] text-white text-xs font-semibold hover:bg-[#b06f55] transition-colors flex items-center gap-1.5 shadow-xs"
+              >
+                <LifeBuoy className="w-3.5 h-3.5" />
+                <span>Help me get unstuck</span>
+              </button>
+            )}
           </div>
         ) : (
           filteredTasks.map((task) => {

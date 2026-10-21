@@ -15,9 +15,20 @@ import {
   ExternalLink,
   Shield,
   Coffee,
+  LifeBuoy,
+  BookOpen,
 } from 'lucide-react';
 import { SlothMascot } from '../mascot/SlothMascot';
-import { Task, SlothGardenData, ActivityItem, TimeBlock, AppSettings, Subtask } from '../../types';
+import {
+  Task,
+  SlothGardenData,
+  ActivityItem,
+  TimeBlock,
+  AppSettings,
+  Subtask,
+  FocusSession,
+  EnergyLevel,
+} from '../../types';
 import { DashboardOverview } from '../dashboard/DashboardOverview';
 import { TasksView } from '../tasks/TasksView';
 import { LazyTaskOrganizer } from '../ai/LazyTaskOrganizer';
@@ -30,6 +41,8 @@ import { ActivityHistoryView } from '../history/ActivityHistoryView';
 import { SettingsView } from '../settings/SettingsView';
 import { OneTaskFocusMode } from '../focus/OneTaskFocusMode';
 import { QuickCaptureModal } from '../quickcapture/QuickCaptureModal';
+import { SlothRescueModal } from '../rescue/SlothRescueModal';
+import { WeeklyReflectionView } from '../reflection/WeeklyReflectionView';
 
 interface WorkspaceShellProps {
   tasks: Task[];
@@ -37,6 +50,8 @@ interface WorkspaceShellProps {
   activities: ActivityItem[];
   planner: TimeBlock[];
   settings: AppSettings;
+  focusSessions: FocusSession[];
+  energyLevel: EnergyLevel;
   onAddTask: (task: Task) => void;
   onAddTasks: (newTasks: Task[]) => void;
   onUpdateTask: (task: Task) => void;
@@ -45,11 +60,14 @@ interface WorkspaceShellProps {
   onAddSubtasks: (taskId: string, subtasks: Subtask[]) => void;
   onSaveSchedule: (blocks: TimeBlock[]) => void;
   onResetGarden: () => void;
+  onDailyReset: () => void;
   onClearHistory: () => void;
   onUndoActivity: (item: ActivityItem) => void;
   onLoadSampleData: () => void;
   onRestoreData: (backup: any) => void;
   onUpdateSettings: (settings: AppSettings) => void;
+  onUpdateEnergy: (energy: EnergyLevel) => void;
+  onRecordFocusSession: (session: FocusSession) => void;
   onExportData: () => void;
   onClearAllData: () => void;
   onNavigateHome: () => void;
@@ -62,6 +80,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   activities,
   planner,
   settings,
+  focusSessions,
+  energyLevel,
   onAddTask,
   onAddTasks,
   onUpdateTask,
@@ -70,11 +90,14 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   onAddSubtasks,
   onSaveSchedule,
   onResetGarden,
+  onDailyReset,
   onClearHistory,
   onUndoActivity,
   onLoadSampleData,
   onRestoreData,
   onUpdateSettings,
+  onUpdateEnergy,
+  onRecordFocusSession,
   onExportData,
   onClearAllData,
   onNavigateHome,
@@ -85,6 +108,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [targetMakeSmallerTask, setTargetMakeSmallerTask] = useState<string>('');
   const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [rescueModalOpen, setRescueModalOpen] = useState(false);
 
   // Keyboard shortcut Cmd+K or Ctrl+K for quick capture
   useEffect(() => {
@@ -101,7 +125,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'tasks', label: 'My Tasks', icon: CheckSquare, count: tasks.filter((t) => !t.completed).length },
-    { id: 'focus', label: 'One-Task Focus', icon: Play },
+    { id: 'focus', label: 'Gentle Focus', icon: Play },
+    { id: 'reflection', label: 'Weekly Reflection', icon: BookOpen },
     { id: 'organizer', label: 'Task Organizer', icon: Sparkles },
     { id: 'low-energy', label: 'Low-Energy Mode', icon: Coffee },
     { id: 'breakdown', label: 'Make It Smaller', icon: Sparkles },
@@ -122,6 +147,28 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setActiveTab('focus');
   };
 
+  const handleStartFocusFromRescue = (taskTitle: string, durationMinutes: number) => {
+    // Check if task exists or create it
+    const existing = tasks.find((t) => t.title.toLowerCase() === taskTitle.toLowerCase());
+    if (existing) {
+      setFocusTaskId(existing.id);
+    } else {
+      const newTask: Task = {
+        id: `task-rescue-${Date.now()}`,
+        title: taskTitle,
+        priority: 'high',
+        completed: false,
+        estimatedMinutes: durationMinutes,
+        createdAt: new Date().toISOString(),
+        tags: ['Rescue'],
+        energyLevel: 'low',
+      };
+      onAddTask(newTask);
+      setFocusTaskId(newTask.id);
+    }
+    setActiveTab('focus');
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -129,11 +176,14 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <DashboardOverview
             tasks={tasks}
             garden={garden}
+            energyLevel={energyLevel}
             onOpenTab={setActiveTab}
             onToggleComplete={onToggleComplete}
             onOpenMakeSmaller={handleOpenMakeSmaller}
             onStartFocusOnTask={handleStartFocus}
             onOpenQuickCapture={() => setQuickCaptureOpen(true)}
+            onOpenRescueMode={() => setRescueModalOpen(true)}
+            onUpdateEnergy={onUpdateEnergy}
           />
         );
       case 'tasks':
@@ -146,6 +196,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onToggleComplete={onToggleComplete}
             onOpenMakeSmaller={handleOpenMakeSmaller}
             onStartFocusOnTask={handleStartFocus}
+            onOpenRescueMode={() => setRescueModalOpen(true)}
           />
         );
       case 'focus':
@@ -154,8 +205,18 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             tasks={tasks}
             initialTaskId={focusTaskId}
             onCompleteTask={onToggleComplete}
+            onRecordFocusSession={onRecordFocusSession}
             onExitFocus={() => setActiveTab('tasks')}
             onSelectTask={(id) => setFocusTaskId(id)}
+            onAddTask={onAddTask}
+          />
+        );
+      case 'reflection':
+        return (
+          <WeeklyReflectionView
+            tasks={tasks}
+            focusSessions={focusSessions}
+            onAddTasks={onAddTasks}
           />
         );
       case 'organizer':
@@ -177,6 +238,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         return (
           <MakeItSmallerView
             tasks={tasks}
+            initialTaskTitle={targetMakeSmallerTask}
             onAddSubtasks={onAddSubtasks}
             onAddStandaloneTasks={onAddTasks}
             onOpenTaskTab={() => setActiveTab('tasks')}
@@ -194,14 +256,18 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <SlowPlannerView
             tasks={tasks}
             initialBlocks={planner}
+            energyLevel={energyLevel}
             onSaveSchedule={onSaveSchedule}
+            onUpdateEnergy={onUpdateEnergy}
           />
         );
       case 'garden':
         return (
           <SlothGardenView
             garden={garden}
+            openTasks={tasks.filter((t) => !t.completed)}
             onResetGarden={onResetGarden}
+            onDailyReset={onDailyReset}
             celebratingTaskId={celebratingTaskId}
           />
         );
@@ -247,11 +313,20 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                   SlothDesk AI
                 </span>
                 <span className="text-[11px] text-[#77766E] block font-sans">
-                  Calm Workspace
+                  Calm Productivity
                 </span>
               </div>
             </button>
           </div>
+
+          {/* Rescue Mode Primary Button (Part 2) */}
+          <button
+            onClick={() => setRescueModalOpen(true)}
+            className="w-full py-2.5 px-3 rounded-2xl bg-[#C47D61] text-white hover:bg-[#b06f55] text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-xs"
+          >
+            <LifeBuoy className="w-4 h-4" />
+            <span>Help me get unstuck</span>
+          </button>
 
           {/* Navigation Links */}
           <nav className="space-y-1">
@@ -262,25 +337,25 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-[#39483B] text-[#F5F0E7] shadow-xs'
-                      : 'text-[#22221F] hover:bg-[#F5F0E7]/80'
+                      ? 'bg-[#39483B] text-[#F5F0E7] font-semibold shadow-xs'
+                      : 'text-[#22221F] hover:bg-[#F5F0E7]/80 hover:text-[#39483B]'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 shrink-0" />
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
                   </div>
                   {item.count !== undefined && (
                     <span
-                      className={`text-[11px] font-mono px-2 py-0.5 rounded-md ${
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
                         isActive
-                          ? 'bg-[#2c392e] text-[#F5F0E7]'
+                          ? 'bg-[#F5F0E7] text-[#39483B]'
                           : 'bg-[#F5F0E7] text-[#77766E]'
                       }`}
                     >
-                      {item.count} {item.leaf ? '🌿' : ''}
+                      {item.count}
                     </span>
                   )}
                 </button>
@@ -289,64 +364,56 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           </nav>
         </div>
 
-        {/* Sidebar Footer with Sloth Companion Status */}
+        {/* Sidebar Footer */}
         <div className="pt-4 border-t border-[#A6AD99]/30 space-y-3">
-          <div className="p-3 rounded-xl bg-[#F5F0E7]/70 border border-[#A6AD99]/30 flex items-center gap-3">
-            <SlothMascot state="idle" size="sm" />
-            <div className="overflow-hidden">
-              <span className="text-xs font-semibold text-[#22221F] block truncate">
-                Pacing Assistant
-              </span>
-              <span className="text-[11px] text-[#39483B] font-medium block truncate">
-                Slow & Steady
-              </span>
-            </div>
-          </div>
-
           <button
             onClick={onNavigateHome}
-            className="w-full flex items-center justify-center gap-2 py-2 text-xs text-[#77766E] hover:text-[#22221F] transition-colors"
+            className="w-full text-left px-3 py-1.5 text-xs text-[#77766E] hover:text-[#22221F] transition-colors flex items-center gap-2"
           >
-            <span>Exit to Landing Page</span>
-            <ExternalLink className="w-3 h-3" />
+            <span>← Landing Page</span>
           </button>
+
+          <div className="flex items-center gap-2 text-[11px] text-[#77766E] px-3">
+            <span className="w-2 h-2 rounded-full bg-[#39483B]" />
+            <span>Move Slower. Get There.</span>
+          </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between p-4 bg-[#E9E0D2] border-b border-[#A6AD99]/30">
+        <header className="flex md:hidden items-center justify-between px-4 py-3 bg-[#E9E0D2] border-b border-[#A6AD99]/30">
           <button
             onClick={onNavigateHome}
-            className="flex items-center gap-2 font-serif text-base font-bold text-[#22221F]"
+            className="flex items-center gap-2 text-left"
           >
-            <div className="w-6 h-6 rounded-lg bg-[#39483B] text-[#F5F0E7] flex items-center justify-center text-xs">
+            <div className="w-7 h-7 rounded-lg bg-[#39483B] flex items-center justify-center text-[#F5F0E7] font-serif font-bold text-sm">
               S
             </div>
-            <span>SlothDesk AI</span>
+            <span className="font-serif font-bold text-[#22221F]">SlothDesk AI</span>
           </button>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setQuickCaptureOpen(true)}
-              className="p-2 rounded-lg bg-white text-[#39483B] border border-[#A6AD99]/40"
-              title="Quick Brain Dump"
+              onClick={() => setRescueModalOpen(true)}
+              className="p-2 rounded-xl bg-[#C47D61] text-white"
+              title="Help me get unstuck"
             >
-              <Sparkles className="w-4 h-4" />
+              <LifeBuoy className="w-4 h-4" />
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-[#22221F] hover:bg-[#F5F0E7]"
+              className="p-2 rounded-xl text-[#22221F] hover:bg-[#F5F0E7]"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </header>
 
-        {/* Mobile Nav Drawer */}
+        {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#E9E0D2] border-b border-[#A6AD99]/30 p-4 space-y-1">
+          <div className="md:hidden bg-[#E9E0D2] border-b border-[#A6AD99]/30 p-4 space-y-1 animate-in fade-in">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -392,7 +459,16 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Quick Unstuck Trigger */}
+            <button
+              onClick={() => setRescueModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C47D61]/15 text-[#C47D61] hover:bg-[#C47D61]/25 text-xs font-semibold transition-colors border border-[#C47D61]/30"
+            >
+              <LifeBuoy className="w-3.5 h-3.5" />
+              <span>Get Unstuck</span>
+            </button>
+
             {/* Quick Capture Cmd+K Button */}
             <button
               onClick={() => setQuickCaptureOpen(true)}
@@ -405,7 +481,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               </kbd>
             </button>
 
-            {/* Guest mode status badge */}
+            {/* Vault badge */}
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#E9E0D2] border border-[#A6AD99]/30 text-xs text-[#22221F]">
               <div className="w-2 h-2 rounded-full bg-[#39483B]" />
               <span className="font-medium">Private Vault</span>
@@ -426,11 +502,19 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onClose={() => setQuickCaptureOpen(false)}
         onSaveTasks={onAddTasks}
         onSaveNotes={(newNotes) => {
-          // Add notes to activities or quick note store
-          newNotes.forEach((n) => {
+          newNotes.forEach((_n) => {
             onAddTasks([]);
           });
         }}
+      />
+
+      {/* Sloth Rescue Mode Modal (Part 2) */}
+      <SlothRescueModal
+        isOpen={rescueModalOpen}
+        onClose={() => setRescueModalOpen(false)}
+        onStartFocus={handleStartFocusFromRescue}
+        onAddTask={onAddTask}
+        onOpenMakeSmaller={handleOpenMakeSmaller}
       />
     </div>
   );

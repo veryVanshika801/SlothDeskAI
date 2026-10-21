@@ -10,6 +10,10 @@ import {
   savePlanner,
   loadSettings,
   saveSettings,
+  loadFocusSessions,
+  saveFocusSessions,
+  loadCurrentEnergy,
+  saveCurrentEnergy,
   clearSlothDeskData,
   generateExportBackup,
   INITIAL_TASKS,
@@ -17,8 +21,18 @@ import {
   INITIAL_ACTIVITIES,
   INITIAL_PLANNER,
   INITIAL_SETTINGS,
+  INITIAL_FOCUS_SESSIONS,
 } from './utils/storage';
-import { Task, SlothGardenData, ActivityItem, TimeBlock, AppSettings, Subtask } from './types';
+import {
+  Task,
+  SlothGardenData,
+  ActivityItem,
+  TimeBlock,
+  AppSettings,
+  Subtask,
+  FocusSession,
+  EnergyLevel,
+} from './types';
 import { LandingPage } from './components/landing/LandingPage';
 import { WorkspaceShell } from './components/workspace/WorkspaceShell';
 
@@ -29,6 +43,8 @@ export default function App() {
   const [activities, setActivities] = useState<ActivityItem[]>(() => loadActivities());
   const [planner, setPlanner] = useState<TimeBlock[]>(() => loadPlanner());
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
+  const [focusSessions, setFocusSessions] = useState<FocusSession[]>(() => loadFocusSessions());
+  const [energyLevel, setEnergyLevel] = useState<EnergyLevel>(() => loadCurrentEnergy());
   const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null);
 
   // Sync to local storage
@@ -47,6 +63,14 @@ export default function App() {
   useEffect(() => {
     savePlanner(planner);
   }, [planner]);
+
+  useEffect(() => {
+    saveFocusSessions(focusSessions);
+  }, [focusSessions]);
+
+  useEffect(() => {
+    saveCurrentEnergy(energyLevel);
+  }, [energyLevel]);
 
   useEffect(() => {
     saveSettings(settings);
@@ -235,6 +259,38 @@ export default function App() {
     addActivity('planner_saved', 'Saved daily time block plan', `${newBlocks.length} blocks scheduled`);
   };
 
+  const handleRecordFocusSession = (session: FocusSession) => {
+    setFocusSessions((prev) => [session, ...prev]);
+    addActivity(
+      'focus_session_completed',
+      `Completed ${session.durationMinutes}m focus session`,
+      session.taskTitle ? `Task: ${session.taskTitle}` : undefined
+    );
+  };
+
+  const handleDailyReset = () => {
+    // Postpone open tasks without guilt and log gentle reset
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (!t.completed && t.dueDate === todayStr) {
+          return { ...t, dueDate: tomorrowStr };
+        }
+        return t;
+      })
+    );
+
+    addActivity(
+      'daily_reset',
+      'Gentle Daily Reset applied',
+      'Unfinished tasks postponed to tomorrow with full permission to rest tonight 🌙'
+    );
+  };
+
   const handleResetGarden = () => {
     setGarden({
       leafCount: 0,
@@ -251,6 +307,11 @@ export default function App() {
 
   const handleUpdateSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
+  };
+
+  const handleUpdateEnergy = (energy: EnergyLevel) => {
+    setEnergyLevel(energy);
+    addActivity('task_updated', `Switched energy level to ${energy.toUpperCase()}`);
   };
 
   const handleExportData = () => {
@@ -270,6 +331,7 @@ export default function App() {
     setGarden({ leafCount: 0, treeStage: 1, completedTaskIds: [], historyLogs: [] });
     setActivities([]);
     setPlanner([]);
+    setFocusSessions([]);
     setSettings(INITIAL_SETTINGS);
   };
 
@@ -278,6 +340,7 @@ export default function App() {
     setGarden(INITIAL_GARDEN);
     setActivities(INITIAL_ACTIVITIES);
     setPlanner(INITIAL_PLANNER);
+    setFocusSessions(INITIAL_FOCUS_SESSIONS);
     setSettings(INITIAL_SETTINGS);
   };
 
@@ -287,6 +350,7 @@ export default function App() {
     if (backup.activities) setActivities(backup.activities);
     if (backup.planner) setPlanner(backup.planner);
     if (backup.settings) setSettings(backup.settings);
+    if (backup.focusSessions) setFocusSessions(backup.focusSessions);
   };
 
   return (
@@ -294,7 +358,7 @@ export default function App() {
       {view === 'landing' ? (
         <LandingPage
           onEnterWorkspace={() => setView('workspace')}
-          onSelectFeature={(tab) => {
+          onSelectFeature={(_tab) => {
             setView('workspace');
           }}
         />
@@ -305,6 +369,8 @@ export default function App() {
           activities={activities}
           planner={planner}
           settings={settings}
+          focusSessions={focusSessions}
+          energyLevel={energyLevel}
           onAddTask={handleAddTask}
           onAddTasks={handleAddTasks}
           onUpdateTask={handleUpdateTask}
@@ -313,11 +379,14 @@ export default function App() {
           onAddSubtasks={handleAddSubtasks}
           onSaveSchedule={handleSaveSchedule}
           onResetGarden={handleResetGarden}
+          onDailyReset={handleDailyReset}
           onClearHistory={handleClearHistory}
           onUndoActivity={handleUndoActivity}
           onLoadSampleData={handleLoadSampleData}
           onRestoreData={handleRestoreData}
           onUpdateSettings={handleUpdateSettings}
+          onUpdateEnergy={handleUpdateEnergy}
+          onRecordFocusSession={handleRecordFocusSession}
           onExportData={handleExportData}
           onClearAllData={handleClearAllData}
           onNavigateHome={() => setView('landing')}

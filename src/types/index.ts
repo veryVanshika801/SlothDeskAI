@@ -44,6 +44,15 @@ export type MascotState =
   | 'error-state'
   | 'garden';
 
+export interface FocusSession {
+  id: string;
+  taskId?: string;
+  taskTitle?: string;
+  durationMinutes: number;
+  completedAt: string;
+  mode: 'timed' | 'zen';
+}
+
 export interface ActivityItem {
   id: string;
   timestamp: string;
@@ -53,13 +62,17 @@ export interface ActivityItem {
     | 'task_uncompleted'
     | 'task_updated'
     | 'task_deleted'
+    | 'focus_session_completed'
     | 'ai_organize'
     | 'ai_low_energy'
     | 'ai_breakdown'
     | 'ai_notes'
     | 'ai_quick_capture'
     | 'ai_reschedule'
+    | 'ai_rescue'
+    | 'weekly_reflection_saved'
     | 'planner_saved'
+    | 'daily_reset'
     | 'garden_reset';
   title: string;
   details?: string;
@@ -159,15 +172,30 @@ export interface ReschedulePlan {
   deferredTasks: string[];
 }
 
-export interface DocumentSummaryResult {
-  fileName: string;
-  fileSize: number;
-  summary: string;
-  keyPoints: string[];
-  extractedActions: Array<{
+export interface RescueUnstuckResult {
+  acknowledgement: string;
+  firstAction: {
     title: string;
-    priority: Priority;
     estimatedMinutes: number;
-  }>;
-  sourceSnippets: string[];
+    starterAction: string;
+    reason: string;
+  };
+  followUpSteps: string[];
+  suggestedDurationMinutes: number;
+  canMakeSmaller: boolean;
+}
+
+export interface WeeklyReflectionData {
+  id: string;
+  weekStart: string; // ISO date format YYYY-MM-DD
+  weekEnd: string;   // ISO date format YYYY-MM-DD
+  completedTasksCount: number;
+  pendingTasksCount: number;
+  totalFocusMinutes: number;
+  focusSessionsCount: number;
+  smallWins: string[];
+  userReflectionText: string;
+  aiReflectionSummary?: string;
+  suggestedNextWeekFocus?: string[];
+  updatedAt: string;
 }

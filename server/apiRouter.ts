@@ -8,6 +8,8 @@ import {
   generateSlowScheduleAI,
   quickCaptureAI,
   smartRescheduleAI,
+  rescueUnstuckAI,
+  weeklyReflectionAI,
 } from './aiProvider';
 
 export const apiRouter = Router();
@@ -103,12 +105,13 @@ apiRouter.post('/ai/notes-to-action', async (req: Request, res: Response) => {
 
 // 5. Slow Planner
 apiRouter.post('/ai/planner', async (req: Request, res: Response) => {
-  const { tasks = [], availableHours = 4 } = req.body;
+  const { tasks = [], availableHours = 4, energyLevel = 'normal' } = req.body;
 
   try {
     const result = await generateSlowScheduleAI(
       Array.isArray(tasks) ? tasks : [],
-      Math.min(12, Math.max(1, Number(availableHours) || 4))
+      Math.min(12, Math.max(1, Number(availableHours) || 4)),
+      ['low', 'normal', 'high'].includes(energyLevel) ? energyLevel : 'normal'
     );
     res.json(result);
   } catch (err: any) {
@@ -146,3 +149,46 @@ apiRouter.post('/ai/reschedule', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Smart rescheduling failed', message: err?.message });
   }
 });
+
+// 8. Sloth Rescue Mode (Part 2)
+apiRouter.post('/ai/rescue', async (req: Request, res: Response) => {
+  const { situation, challengeType, variationIndex = 0 } = req.body;
+
+  if (!situation || typeof situation !== 'string' || situation.trim().length === 0) {
+    return res.status(400).json({ error: 'Please describe what feels difficult or overwhelming.' });
+  }
+
+  if (situation.length > 50000) {
+    return res.status(413).json({ error: 'Input situation exceeds maximum allowed size (50,000 characters).' });
+  }
+
+  try {
+    const result = await rescueUnstuckAI(
+      situation.trim(),
+      typeof challengeType === 'string' ? challengeType.trim() : undefined,
+      Number(variationIndex) || 0
+    );
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Rescue suggestion failed', message: err?.message });
+  }
+});
+
+// 9. Weekly Sloth Reflection (Part 6)
+apiRouter.post('/ai/weekly-reflection', async (req: Request, res: Response) => {
+  const { completedTasks = [], pendingTasks = [], focusMinutes = 0, userReflection, variationIndex = 0 } = req.body;
+
+  try {
+    const result = await weeklyReflectionAI(
+      Array.isArray(completedTasks) ? completedTasks : [],
+      Array.isArray(pendingTasks) ? pendingTasks : [],
+      Number(focusMinutes) || 0,
+      typeof userReflection === 'string' ? userReflection.trim() : undefined,
+      Number(variationIndex) || 0
+    );
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Weekly reflection generation failed', message: err?.message });
+  }
+});
+
